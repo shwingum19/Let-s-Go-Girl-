@@ -1,1 +1,430 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SkillTracker</title>
+  <style>
+    :root {
+      --bg: #f5f5f7; --surface: #ffffff; --surface2: #f0f0f5;
+      --border: #e2e2ea; --text: #1a1a2e; --text2: #6b6b80; --text3: #9999aa;
+      --purple: #534AB7; --purple-light: #EEEDFE;
+      --green-bg: #E1F5EE; --green: #0F6E56;
+      --amber-bg: #FAEEDA; --amber: #633806;
+      --red-bg: #FCEBEB; --red: #791F1F;
+      --done-bg: #EAF3DE; --done: #3B6D11;
+      --radius: 14px; --radius-sm: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; padding: 24px 16px 110px;
+    }
+    .app-header { width: 100%; max-width: 480px; margin-bottom: 24px; }
+    .app-title { font-size: 22px; font-weight: 700; }
+    .app-title span { color: var(--purple); }
+    .page { display: none; width: 100%; max-width: 480px; }
+    .page.active { display: block; }
+    .page-title { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+    .page-sub { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--surface); border-top: 1px solid var(--border);
+      display: flex; flex-direction: column; align-items: center;
+      padding: 10px 16px 14px; z-index: 100;
+    }
+    .nav-top { display: flex; gap: 8px; width: 100%; max-width: 480px; justify-content: center; margin-bottom: 8px; }
+    .nav-bottom { display: flex; justify-content: center; width: 100%; max-width: 480px; }
+    .nav-btn {
+      flex: 1; max-width: 140px; padding: 9px 8px;
+      border-radius: 12px; border: none; background: var(--surface2);
+      color: var(--text2); font-size: 12px; font-weight: 500; cursor: pointer;
+      transition: all .2s; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    }
+    .nav-btn svg { width: 18px; height: 18px; }
+    .nav-btn.active { background: var(--purple-light); color: var(--purple); }
+    .nav-btn-projet {
+      width: 160px; padding: 10px 24px; border-radius: 12px; border: none;
+      background: var(--surface2); color: var(--text2); font-size: 12px;
+      font-weight: 500; cursor: pointer; transition: all .2s;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+    }
+    .nav-btn-projet svg { width: 18px; height: 18px; }
+    .nav-btn-projet.active { background: var(--purple-light); color: var(--purple); }
+    .home-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .home-card {
+      background: var(--surface); border-radius: var(--radius);
+      border: 1px solid var(--border); padding: 20px 16px;
+      text-align: center; cursor: pointer; transition: all .2s;
+    }
+    .home-card:hover { border-color: var(--purple); background: var(--purple-light); }
+    .home-card-icon { width: 44px; height: 44px; border-radius: 12px; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; }
+    .home-card-icon svg { width: 22px; height: 22px; }
+    .home-card-name { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+    .home-card-sub { font-size: 11px; color: var(--text2); }
+    .card {
+      background: var(--surface); border-radius: var(--radius);
+      border: 1px solid var(--border); padding: 14px 16px; margin-bottom: 10px; transition: border-color .2s;
+    }
+    .card.clickable { cursor: pointer; }
+    .card.clickable:hover { border-color: var(--purple); }
+    .card.selected { border-color: var(--purple); background: var(--purple-light); }
+    .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .card-icon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .card-name { font-size: 14px; font-weight: 600; flex: 1; }
+    .card-level { font-size: 13px; font-weight: 700; color: var(--purple); }
+    .bar-row { display: flex; align-items: center; gap: 8px; }
+    .bar-num { font-size: 10px; color: var(--text3); }
+    .bar-track { flex: 1; height: 10px; background: var(--surface2); border-radius: 10px; border: 1px solid var(--border); overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 10px; background: linear-gradient(90deg, #7F77DD, #534AB7); transition: width .5s ease; }
+    .bar-hint { font-size: 10px; color: var(--text2); margin-top: 5px; }
+    .add-btn {
+      width: 100%; padding: 12px; border-radius: var(--radius);
+      border: 1.5px dashed var(--purple); background: var(--purple-light);
+      color: var(--purple); font-size: 13px; font-weight: 600;
+      cursor: pointer; margin-bottom: 16px; transition: opacity .2s;
+    }
+    .add-btn:hover { opacity: .8; }
+    .pratique-zone { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px; margin-top: 4px; }
+    .pratique-zone-label { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 12px; }
+    .time-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .time-block { flex: 1; text-align: center; }
+    .time-block input { width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface2); font-size: 24px; font-weight: 700; color: var(--text); text-align: center; }
+    .time-block label { font-size: 11px; color: var(--text2); display: block; margin-top: 5px; }
+    .time-sep { font-size: 22px; color: var(--text3); padding-top: 4px; }
+    .validate-btn { width: 100%; padding: 13px; border-radius: var(--radius); border: none; background: var(--purple); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .2s; }
+    .validate-btn:hover { opacity: .88; }
+    .proj-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
+    .proj-title { font-size: 14px; font-weight: 600; }
+    .proj-meta { font-size: 11px; color: var(--text2); margin-bottom: 10px; }
+    .deadline-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 9px; border-radius: 20px; background: var(--amber-bg); color: var(--amber); font-weight: 600; flex-shrink: 0; }
+    .deadline-badge.urgent { background: var(--red-bg); color: var(--red); }
+    .deadline-badge.none { background: var(--surface2); color: var(--text3); }
+    .pills { display: flex; gap: 5px; flex-wrap: wrap; }
+    .pill { font-size: 10px; padding: 4px 9px; border-radius: 20px; font-weight: 600; transition: all .2s; }
+    .pill.done { background: var(--done-bg); color: var(--done); }
+    .pill.active { background: var(--purple); color: #fff; cursor: pointer; }
+    .pill.active:hover { background: #3C3489; }
+    .pill.todo { background: var(--surface2); color: var(--text3); border: 1px solid var(--border); }
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--surface); border-radius: 18px; padding: 24px; width: 100%; max-width: 360px; box-shadow: 0 20px 60px rgba(0,0,0,.15); }
+    .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+    .modal-sub { font-size: 12px; color: var(--text2); margin-bottom: 18px; }
+    .modal label { font-size: 12px; font-weight: 500; color: var(--text2); display: block; margin-bottom: 5px; }
+    .modal input, .modal select, .modal textarea { width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface2); font-size: 13px; color: var(--text); margin-bottom: 14px; }
+    .modal textarea { resize: none; height: 72px; }
+    .modal-btns { display: flex; gap: 10px; margin-top: 4px; }
+    .modal-btns button { flex: 1; padding: 11px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .btn-cancel { background: var(--surface2); border: 1px solid var(--border); color: var(--text2); }
+    .btn-confirm { background: var(--purple); border: none; color: #fff; }
+    .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: #1a1a2e; color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: 500; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 300; white-space: nowrap; }
+    .toast.show { opacity: 1; }
+    .empty { text-align: center; padding: 32px 20px; color: var(--text3); font-size: 13px; }
+    .empty-icon { font-size: 36px; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
 
+<div class="toast" id="toast"></div>
+
+<div class="app-header">
+  <div class="app-title">Skill<span>Tracker</span></div>
+</div>
+
+<!-- ACCUEIL -->
+<div class="page active" id="page-home">
+  <div class="page-title">Bonjour 👋</div>
+  <div class="page-sub">Que veux-tu faire aujourd'hui ?</div>
+  <div class="home-grid">
+    <div class="home-card" onclick="showPage('pratique')">
+      <div class="home-card-icon" style="background:#EEEDFE">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#534AB7" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <div class="home-card-name">Pratiques</div>
+      <div class="home-card-sub">Enregistrer du temps</div>
+    </div>
+    <div class="home-card" onclick="showPage('competences')">
+      <div class="home-card-icon" style="background:#E1F5EE">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#0F6E56" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      </div>
+      <div class="home-card-name">Compétences</div>
+      <div class="home-card-sub">Voir ta progression</div>
+    </div>
+    <div class="home-card" onclick="showPage('projet')" style="grid-column:span 2;max-width:220px;margin:0 auto;width:100%">
+      <div class="home-card-icon" style="background:#FAEEDA;margin:0 auto 10px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#854F0B" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      </div>
+      <div class="home-card-name">Projets</div>
+      <div class="home-card-sub">Créer & suivre</div>
+    </div>
+  </div>
+</div>
+
+<!-- PRATIQUE -->
+<div class="page" id="page-pratique">
+  <div class="page-title">Pratique</div>
+  <div class="page-sub">Quelle compétence travailles-tu ?</div>
+  <button class="add-btn" onclick="openModal('skill')">+ Ajouter une compétence</button>
+  <div id="skill-list-pratique"></div>
+  <div class="pratique-zone">
+    <div class="pratique-zone-label" id="pratique-label">Sélectionne une compétence ci-dessus</div>
+    <div class="time-row">
+      <div class="time-block"><input type="number" id="inp-h" min="0" value="0"/><label>heures</label></div>
+      <div class="time-sep">:</div>
+      <div class="time-block"><input type="number" id="inp-m" min="0" max="59" value="0"/><label>minutes</label></div>
+    </div>
+    <button class="validate-btn" onclick="validerSession()">Valider la session ✓</button>
+  </div>
+</div>
+
+<!-- COMPÉTENCES -->
+<div class="page" id="page-competences">
+  <div class="page-title">Tableau des compétences</div>
+  <div class="page-sub">Ta progression par compétence</div>
+  <div id="skill-list-competences"></div>
+</div>
+
+<!-- PROJETS -->
+<div class="page" id="page-projet">
+  <div class="page-title">Projets</div>
+  <div class="page-sub">Clique sur l'étape violette pour avancer</div>
+  <button class="add-btn" onclick="openModal('project')">+ Nouveau projet</button>
+  <div id="project-list"></div>
+</div>
+
+<!-- NAV -->
+<nav class="bottom-nav">
+  <div class="nav-top">
+    <button class="nav-btn active" id="nav-home" onclick="showPage('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Accueil
+    </button>
+    <button class="nav-btn" id="nav-pratique" onclick="showPage('pratique')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Pratique
+    </button>
+    <button class="nav-btn" id="nav-competences" onclick="showPage('competences')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Compétences
+    </button>
+  </div>
+  <div class="nav-bottom">
+    <button class="nav-btn-projet" id="nav-projet" onclick="showPage('projet')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Projets
+    </button>
+  </div>
+</nav>
+
+<!-- MODAL COMPÉTENCE -->
+<div class="modal-overlay" id="modal-skill">
+  <div class="modal">
+    <div class="modal-title">Nouvelle compétence</div>
+    <div class="modal-sub">Définis ta compétence</div>
+    <label>Nom</label><input type="text" id="sk-name" placeholder="ex : Guitare"/>
+    <label>Emoji</label><input type="text" id="sk-emoji" placeholder="ex : 🎸" maxlength="2"/>
+    <label>Niveau de départ</label>
+    <select id="sk-level">
+      <option value="0">Niveau 0 — débutant complet</option>
+      <option value="1">Niveau 1 (4h)</option>
+      <option value="2">Niveau 2 (8h)</option>
+      <option value="3">Niveau 3 (12h)</option>
+      <option value="4">Niveau 4 (16h)</option>
+      <option value="5">Niveau 5 (20h)</option>
+      <option value="6">Niveau 6 (24h)</option>
+      <option value="7">Niveau 7 (28h)</option>
+    </select>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('skill')">Annuler</button>
+      <button class="btn-confirm" onclick="addSkill()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PROJET -->
+<div class="modal-overlay" id="modal-project">
+  <div class="modal">
+    <div class="modal-title">Nouveau projet</div>
+    <div class="modal-sub">Définis ton projet</div>
+    <label>Titre</label><input type="text" id="pj-title" placeholder="ex : Album de musique"/>
+    <label>Description</label><textarea id="pj-desc" placeholder="Décris ton projet..."></textarea>
+    <label>Deadline pour l'étape "Idée"</label><input type="date" id="pj-deadline"/>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('project')">Annuler</button>
+      <button class="btn-confirm" onclick="addProject()">Créer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AVANCER ÉTAPE -->
+<div class="modal-overlay" id="modal-advance">
+  <div class="modal">
+    <div class="modal-title" id="adv-title">Étape suivante</div>
+    <div class="modal-sub">Définis la deadline pour cette étape (optionnel)</div>
+    <label id="adv-label">Deadline</label><input type="date" id="adv-deadline"/>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('advance')">Annuler</button>
+      <button class="btn-confirm" onclick="confirmAdvance()">Valider</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SEUILS = [0,4,8,12,16,20,24,28,36,44,52];
+const STAGES = ['Idée','Écriture','Production','Réalisation','Post-prod','Terminé'];
+const COLORS = ['#EEEDFE','#E1F5EE','#FAEEDA','#FAECE7','#E6F1FB'];
+
+let skills = JSON.parse(localStorage.getItem('st_skills')||'[]');
+let projects = JSON.parse(localStorage.getItem('st_projects')||'[]');
+let selectedSkillId = null;
+let pendingAdvanceId = null;
+
+function saveSkills(){ localStorage.setItem('st_skills', JSON.stringify(skills)); }
+function saveProjects(){ localStorage.setItem('st_projects', JSON.stringify(projects)); }
+
+function getNiveau(mins){ const h=mins/60; for(let i=SEUILS.length-1;i>=0;i--){ if(h>=SEUILS[i]) return Math.min(i,10); } return 0; }
+function getJauge(mins){ const h=mins/60,n=getNiveau(mins); if(n>=10) return 100; return Math.min(100,((h-SEUILS[n])/(SEUILS[n+1]-SEUILS[n]))*100); }
+function getHint(mins){ const n=getNiveau(mins); if(n>=10) return '🏆 Niveau maximum atteint !'; return '+'+(SEUILS[n+1]-mins/60).toFixed(1)+'h pour le niveau '+(n+1); }
+
+function renderSkills(){
+  ['pratique','competences'].forEach(view=>{
+    const el=document.getElementById('skill-list-'+view);
+    if(!el) return;
+    if(skills.length===0){ el.innerHTML='<div class="empty"><div class="empty-icon">🎯</div>Aucune compétence encore.<br>Ajoute-en une !</div>'; return; }
+    el.innerHTML='';
+    skills.forEach(s=>{
+      const niv=getNiveau(s.mins),pct=getJauge(s.mins).toFixed(1),hint=getHint(s.mins);
+      const isSel=view==='pratique'&&s.id===selectedSkillId;
+      const card=document.createElement('div');
+      card.className='card'+(view==='pratique'?' clickable':'')+(isSel?' selected':'');
+      if(view==='pratique') card.onclick=()=>selectSkill(s.id);
+      const extra=view==='competences'?`<div style="font-size:11px;color:var(--text2);margin-top:6px">${(s.mins/60).toFixed(1)}h pratiquées au total</div>`:'';
+      card.innerHTML=`<div class="card-header"><div class="card-icon" style="background:${s.color}">${s.emoji}</div><div class="card-name">${s.name}</div><div class="card-level">Niv. ${niv}</div></div><div class="bar-row"><span class="bar-num">0</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div><span class="bar-num">10</span></div><div class="bar-hint">${hint}</div>${extra}`;
+      el.appendChild(card);
+    });
+  });
+}
+
+function selectSkill(id){
+  selectedSkillId=id;
+  const s=skills.find(x=>x.id===id);
+  document.getElementById('pratique-label').textContent='Compétence sélectionnée : '+s.name;
+  renderSkills();
+}
+
+function validerSession(){
+  if(selectedSkillId===null){ showToast('Sélectionne une compétence !'); return; }
+  const h=parseInt(document.getElementById('inp-h').value)||0;
+  const m=parseInt(document.getElementById('inp-m').value)||0;
+  const added=h*60+m;
+  if(added===0){ showToast('Entre une durée !'); return; }
+  const s=skills.find(x=>x.id===selectedSkillId);
+  const before=getNiveau(s.mins);
+  s.mins+=added;
+  const after=getNiveau(s.mins);
+  saveSkills(); renderSkills();
+  if(after>before) showToast('🎉 Niveau '+after+' atteint en '+s.name+' !');
+  else showToast('✓ '+(h>0?h+'h':'')+(m>0?m+'min':'')+' enregistrées sur '+s.name);
+  document.getElementById('inp-h').value=0;
+  document.getElementById('inp-m').value=0;
+}
+
+function renderProjects(){
+  const el=document.getElementById('project-list');
+  if(!el) return;
+  if(projects.length===0){ el.innerHTML='<div class="empty"><div class="empty-icon">📋</div>Aucun projet encore.<br>Crée-en un !</div>'; return; }
+  el.innerHTML='';
+  projects.forEach(p=>{
+    const dl=p.deadlines[p.stage];
+    const dlInfo=formatDeadline(dl);
+    const dlHtml=dlInfo?`<div class="deadline-badge ${dlInfo.urgent?'urgent':''}">${dlInfo.urgent?'⚠️ ':'📅 '}${dlInfo.label}</div>`:`<div class="deadline-badge none">Pas de deadline</div>`;
+    const termine=p.stage>=STAGES.length-1;
+    const pills=STAGES.map((st,i)=>{ const cls=i<p.stage?'done':i===p.stage?'active':'todo'; const click=cls==='active'&&!termine?`onclick="askAdvance('${p.id}')"` :''; return `<span class="pill ${cls}" ${click}>${st}</span>`; }).join('');
+    const meta=termine?'✅ Projet terminé !':`Étape active : <strong>${STAGES[p.stage]}</strong> — clique pour avancer`;
+    const card=document.createElement('div');
+    card.className='card';
+    card.innerHTML=`<div class="proj-header"><div class="proj-title">${p.title}</div>${dlHtml}</div><div class="proj-meta">${meta}</div><div class="pills">${pills}</div>`;
+    el.appendChild(card);
+  });
+}
+
+function formatDeadline(str){
+  if(!str) return null;
+  const d=new Date(str),today=new Date();
+  today.setHours(0,0,0,0);
+  const diff=Math.ceil((d-today)/(1000*60*60*24));
+  return { label:d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}), urgent:diff<=7 };
+}
+
+function askAdvance(projectId){
+  const p=projects.find(x=>x.id===projectId);
+  if(!p||p.stage>=STAGES.length-1) return;
+  pendingAdvanceId=projectId;
+  const next=STAGES[p.stage+1];
+  document.getElementById('adv-title').textContent='Passer à : '+next;
+  document.getElementById('adv-label').textContent='Deadline pour "'+next+'"';
+  document.getElementById('adv-deadline').value='';
+  openModal('advance');
+}
+
+function confirmAdvance(){
+  const p=projects.find(x=>x.id===pendingAdvanceId);
+  if(!p) return;
+  p.stage++;
+  p.deadlines[p.stage]=document.getElementById('adv-deadline').value||'';
+  saveProjects(); renderProjects();
+  closeModal('advance');
+  showToast('✓ Étape : '+STAGES[p.stage]);
+  pendingAdvanceId=null;
+}
+
+function addSkill(){
+  const name=document.getElementById('sk-name').value.trim();
+  const emoji=document.getElementById('sk-emoji').value.trim()||'⭐';
+  const level=parseInt(document.getElementById('sk-level').value)||0;
+  if(!name){ showToast('Entre un nom !'); return; }
+  skills.push({ id:Date.now().toString(), name, emoji, color:COLORS[skills.length%COLORS.length], mins:SEUILS[level]*60 });
+  saveSkills(); renderSkills();
+  closeModal('skill');
+  showToast('✓ '+name+' ajouté !');
+  document.getElementById('sk-name').value='';
+  document.getElementById('sk-emoji').value='';
+}
+
+function addProject(){
+  const title=document.getElementById('pj-title').value.trim();
+  const desc=document.getElementById('pj-desc').value.trim();
+  const deadline=document.getElementById('pj-deadline').value;
+  if(!title){ showToast('Entre un titre !'); return; }
+  const deadlines=['','','','','',''];
+  deadlines[0]=deadline;
+  projects.push({ id:Date.now().toString(), title, desc, stage:0, deadlines });
+  saveProjects(); renderProjects();
+  closeModal('project');
+  showToast('✓ '+title+' créé !');
+  document.getElementById('pj-title').value='';
+  document.getElementById('pj-desc').value='';
+  document.getElementById('pj-deadline').value='';
+}
+
+const NAV_IDS=['home','pratique','competences','projet'];
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  NAV_IDS.forEach(n=>{ const btn=document.getElementById('nav-'+n); if(btn) btn.classList.toggle('active',n===id); });
+}
+
+function openModal(type){ document.getElementById('modal-'+type).classList.add('open'); }
+function closeModal(type){ document.getElementById('modal-'+type).classList.remove('open'); }
+
+let toastTimer;
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2500); }
+
+renderSkills();
+renderProjects();
+</script>
+</body>
+</html>
