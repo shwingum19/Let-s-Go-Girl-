@@ -1,430 +1,655 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SkillTracker</title>
-  <style>
-    :root {
-      --bg: #f5f5f7; --surface: #ffffff; --surface2: #f0f0f5;
-      --border: #e2e2ea; --text: #1a1a2e; --text2: #6b6b80; --text3: #9999aa;
-      --purple: #534AB7; --purple-light: #EEEDFE;
-      --green-bg: #E1F5EE; --green: #0F6E56;
-      --amber-bg: #FAEEDA; --amber: #633806;
-      --red-bg: #FCEBEB; --red: #791F1F;
-      --done-bg: #EAF3DE; --done: #3B6D11;
-      --radius: 14px; --radius-sm: 8px;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: var(--bg); color: var(--text);
-      min-height: 100vh; display: flex; flex-direction: column;
-      align-items: center; padding: 24px 16px 110px;
-    }
-    .app-header { width: 100%; max-width: 480px; margin-bottom: 24px; }
-    .app-title { font-size: 22px; font-weight: 700; }
-    .app-title span { color: var(--purple); }
-    .page { display: none; width: 100%; max-width: 480px; }
-    .page.active { display: block; }
-    .page-title { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
-    .page-sub { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
-    .bottom-nav {
-      position: fixed; bottom: 0; left: 0; right: 0;
-      background: var(--surface); border-top: 1px solid var(--border);
-      display: flex; flex-direction: column; align-items: center;
-      padding: 10px 16px 14px; z-index: 100;
-    }
-    .nav-top { display: flex; gap: 8px; width: 100%; max-width: 480px; justify-content: center; margin-bottom: 8px; }
-    .nav-bottom { display: flex; justify-content: center; width: 100%; max-width: 480px; }
-    .nav-btn {
-      flex: 1; max-width: 140px; padding: 9px 8px;
-      border-radius: 12px; border: none; background: var(--surface2);
-      color: var(--text2); font-size: 12px; font-weight: 500; cursor: pointer;
-      transition: all .2s; display: flex; flex-direction: column; align-items: center; gap: 3px;
-    }
-    .nav-btn svg { width: 18px; height: 18px; }
-    .nav-btn.active { background: var(--purple-light); color: var(--purple); }
-    .nav-btn-projet {
-      width: 160px; padding: 10px 24px; border-radius: 12px; border: none;
-      background: var(--surface2); color: var(--text2); font-size: 12px;
-      font-weight: 500; cursor: pointer; transition: all .2s;
-      display: flex; flex-direction: column; align-items: center; gap: 3px;
-    }
-    .nav-btn-projet svg { width: 18px; height: 18px; }
-    .nav-btn-projet.active { background: var(--purple-light); color: var(--purple); }
-    .home-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .home-card {
-      background: var(--surface); border-radius: var(--radius);
-      border: 1px solid var(--border); padding: 20px 16px;
-      text-align: center; cursor: pointer; transition: all .2s;
-    }
-    .home-card:hover { border-color: var(--purple); background: var(--purple-light); }
-    .home-card-icon { width: 44px; height: 44px; border-radius: 12px; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; }
-    .home-card-icon svg { width: 22px; height: 22px; }
-    .home-card-name { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
-    .home-card-sub { font-size: 11px; color: var(--text2); }
-    .card {
-      background: var(--surface); border-radius: var(--radius);
-      border: 1px solid var(--border); padding: 14px 16px; margin-bottom: 10px; transition: border-color .2s;
-    }
-    .card.clickable { cursor: pointer; }
-    .card.clickable:hover { border-color: var(--purple); }
-    .card.selected { border-color: var(--purple); background: var(--purple-light); }
-    .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-    .card-icon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
-    .card-name { font-size: 14px; font-weight: 600; flex: 1; }
-    .card-level { font-size: 13px; font-weight: 700; color: var(--purple); }
-    .bar-row { display: flex; align-items: center; gap: 8px; }
-    .bar-num { font-size: 10px; color: var(--text3); }
-    .bar-track { flex: 1; height: 10px; background: var(--surface2); border-radius: 10px; border: 1px solid var(--border); overflow: hidden; }
-    .bar-fill { height: 100%; border-radius: 10px; background: linear-gradient(90deg, #7F77DD, #534AB7); transition: width .5s ease; }
-    .bar-hint { font-size: 10px; color: var(--text2); margin-top: 5px; }
-    .add-btn {
-      width: 100%; padding: 12px; border-radius: var(--radius);
-      border: 1.5px dashed var(--purple); background: var(--purple-light);
-      color: var(--purple); font-size: 13px; font-weight: 600;
-      cursor: pointer; margin-bottom: 16px; transition: opacity .2s;
-    }
-    .add-btn:hover { opacity: .8; }
-    .pratique-zone { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px; margin-top: 4px; }
-    .pratique-zone-label { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 12px; }
-    .time-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-    .time-block { flex: 1; text-align: center; }
-    .time-block input { width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface2); font-size: 24px; font-weight: 700; color: var(--text); text-align: center; }
-    .time-block label { font-size: 11px; color: var(--text2); display: block; margin-top: 5px; }
-    .time-sep { font-size: 22px; color: var(--text3); padding-top: 4px; }
-    .validate-btn { width: 100%; padding: 13px; border-radius: var(--radius); border: none; background: var(--purple); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .2s; }
-    .validate-btn:hover { opacity: .88; }
-    .proj-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
-    .proj-title { font-size: 14px; font-weight: 600; }
-    .proj-meta { font-size: 11px; color: var(--text2); margin-bottom: 10px; }
-    .deadline-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 9px; border-radius: 20px; background: var(--amber-bg); color: var(--amber); font-weight: 600; flex-shrink: 0; }
-    .deadline-badge.urgent { background: var(--red-bg); color: var(--red); }
-    .deadline-badge.none { background: var(--surface2); color: var(--text3); }
-    .pills { display: flex; gap: 5px; flex-wrap: wrap; }
-    .pill { font-size: 10px; padding: 4px 9px; border-radius: 20px; font-weight: 600; transition: all .2s; }
-    .pill.done { background: var(--done-bg); color: var(--done); }
-    .pill.active { background: var(--purple); color: #fff; cursor: pointer; }
-    .pill.active:hover { background: #3C3489; }
-    .pill.todo { background: var(--surface2); color: var(--text3); border: 1px solid var(--border); }
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
-    .modal-overlay.open { display: flex; }
-    .modal { background: var(--surface); border-radius: 18px; padding: 24px; width: 100%; max-width: 360px; box-shadow: 0 20px 60px rgba(0,0,0,.15); }
-    .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-    .modal-sub { font-size: 12px; color: var(--text2); margin-bottom: 18px; }
-    .modal label { font-size: 12px; font-weight: 500; color: var(--text2); display: block; margin-bottom: 5px; }
-    .modal input, .modal select, .modal textarea { width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface2); font-size: 13px; color: var(--text); margin-bottom: 14px; }
-    .modal textarea { resize: none; height: 72px; }
-    .modal-btns { display: flex; gap: 10px; margin-top: 4px; }
-    .modal-btns button { flex: 1; padding: 11px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; }
-    .btn-cancel { background: var(--surface2); border: 1px solid var(--border); color: var(--text2); }
-    .btn-confirm { background: var(--purple); border: none; color: #fff; }
-    .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: #1a1a2e; color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: 500; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 300; white-space: nowrap; }
-    .toast.show { opacity: 1; }
-    .empty { text-align: center; padding: 32px 20px; color: var(--text3); font-size: 13px; }
-    .empty-icon { font-size: 36px; margin-bottom: 8px; }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Let's Go Girl ✦</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#1a5fa8;--blue-l:#ddeeff;--blue-m:#5baaf0;
+  --pink:#c0397a;--pink-l:#fde8f4;--pink-m:#f070b0;
+  --green:#1a8a60;--green-l:#d4f0e8;--green-m:#40c090;
+  --purple:#5a30b8;--purple-l:#ede8ff;--purple-m:#9060f0;
+  --amber:#a06010;--amber-l:#fff8d4;--amber-m:#f0a030;
+  --red:#c0392b;--red-l:#fde8e8;
+  --bg:#f5f5f0;--white:#fff;--gray:#888;--gray-l:#eee;--gray-ll:#f8f8f8;
+  --border-light:#e0e0e0;--text:#1a1a2a;--text2:#555;--text3:#999;
+}
+body{background:var(--bg);font-family:'VT323',monospace;color:var(--text);min-height:100vh;padding:16px 16px 100px}
+.app{max-width:520px;margin:0 auto}
+
+/* WINDOW */
+.window{background:var(--white);border-top:3px solid var(--white);border-left:3px solid var(--white);border-right:3px solid var(--gray);border-bottom:3px solid var(--gray);margin-bottom:0}
+.titlebar{padding:5px 7px;display:flex;align-items:center;gap:7px}
+.titlebar.blue{background:linear-gradient(to right,#1a5fa8,#5baaf0)}
+.titlebar.pink{background:linear-gradient(to right,#c0397a,#f070b0)}
+.titlebar.green{background:linear-gradient(to right,#1a8a60,#40c090)}
+.titlebar.purple{background:linear-gradient(to right,#5a30b8,#9060f0)}
+.tb-title{font-family:'Press Start 2P',monospace;font-size:7px;color:#fff;flex:1;letter-spacing:.5px}
+.wb-row{display:flex;gap:4px}
+.wb{width:14px;height:14px;border-top:2px solid #fff;border-left:2px solid #fff;border-right:2px solid #666;border-bottom:2px solid #666;display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;font-weight:700}
+.wb.r{background:#e84a5f;color:#fff}.wb.y{background:#ffcc00;color:#664400}.wb.g{background:#2ecc71;color:#1a5a30}
+
+/* SCORE HEADER */
+.score-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:10px 12px 8px}
+.sc{padding:8px 10px;border-top:2px solid #fff;border-left:2px solid #fff;border-right:2px solid var(--gray);border-bottom:2px solid var(--gray)}
+.sc.blue{background:var(--blue-l)}.sc.pink{background:var(--pink-l)}.sc.amber{background:var(--amber-l)}
+.sc-lbl{font-family:'Press Start 2P',monospace;font-size:6px;margin-bottom:4px}
+.sc-lbl.blue{color:var(--blue)}.sc-lbl.pink{color:var(--pink)}.sc-lbl.amber{color:var(--amber)}
+.sc-val{font-family:'Press Start 2P',monospace;font-size:14px}
+.sc-val.blue{color:var(--blue)}.sc-val.pink{color:var(--pink)}.sc-val.amber{color:var(--amber);font-size:9px;margin-top:3px}
+.sc-sub{font-size:12px;color:var(--text3);margin-top:2px}
+
+/* XP BAR */
+.xp-wrap{padding:0 12px 10px}
+.xp-bar{height:12px;background:#ddd;border:2px solid var(--gray);position:relative;overflow:hidden}
+.xp-fill{height:100%;background:linear-gradient(to right,var(--blue-m),var(--pink-m),var(--amber-m));transition:width .5s}
+.xp-notch{position:absolute;top:0;height:100%;width:2px;background:#fff;opacity:.7}
+.xp-labels{display:flex;justify-content:space-between;margin-top:3px}
+.xp-lbl{font-family:'Press Start 2P',monospace;font-size:5px;color:var(--text3)}
+.xp-lbl.active{color:var(--pink);font-size:6px}
+
+/* NAV */
+.nav-bar{display:flex;border-bottom:3px solid var(--gray);border-top:1px solid var(--border-light)}
+.nav-item{flex:1;padding:7px 4px;text-align:center;font-family:'Press Start 2P',monospace;font-size:6px;color:var(--gray);cursor:pointer;border-right:1px solid var(--border-light);background:#f0f0f0;transition:all .15s;line-height:1.6}
+.nav-item:last-child{border-right:none}
+.nav-item .ni{font-size:16px;display:block;margin-bottom:2px}
+.nav-item.active.blue{background:var(--blue-l);color:var(--blue);border-bottom:3px solid var(--blue);margin-bottom:-3px}
+.nav-item.active.pink{background:var(--pink-l);color:var(--pink);border-bottom:3px solid var(--pink);margin-bottom:-3px}
+.nav-item.active.green{background:var(--green-l);color:var(--green);border-bottom:3px solid var(--green);margin-bottom:-3px}
+.nav-item.active.purple{background:var(--purple-l);color:var(--purple);border-bottom:3px solid var(--purple);margin-bottom:-3px}
+
+/* CONTENT */
+.win-body{padding:12px 14px}
+.page{display:none}.page.active{display:block}
+
+/* PIXEL TAG */
+.ptag{font-family:'Press Start 2P',monospace;font-size:6px;letter-spacing:.08em;margin:12px 0 7px;display:flex;align-items:center;gap:6px}
+.ptag::before{content:'►';font-size:7px}
+.ptag.blue{color:var(--blue)}.ptag.pink{color:var(--pink)}.ptag.green{color:var(--green)}.ptag.purple{color:var(--purple)}.ptag.amber{color:var(--amber)}
+
+/* ADD BTN */
+.add-btn{width:100%;padding:9px;background:var(--gray-l);border-top:2px solid #fff;border-left:2px solid #fff;border-right:2px solid var(--gray);border-bottom:2px solid var(--gray);font-family:'Press Start 2P',monospace;font-size:7px;cursor:pointer;margin-bottom:10px;text-align:center;transition:all .1s}
+.add-btn:active{border-top:2px solid var(--gray);border-left:2px solid var(--gray);border-right:2px solid #fff;border-bottom:2px solid #fff}
+.add-btn.blue{color:var(--blue)}.add-btn.pink{color:var(--pink)}.add-btn.green{color:var(--green)}.add-btn.amber{color:var(--amber)}
+
+/* TASK */
+.task-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px dashed var(--border-light)}
+.task-row:last-child{border-bottom:none}
+.task-check{width:16px;height:16px;border:2px solid var(--blue);background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;font-size:11px;color:#fff;transition:all .15s}
+.task-check.done{background:var(--green);border-color:var(--green)}
+.task-name{font-size:16px;color:var(--text);flex:1}
+.task-name.done{text-decoration:line-through;color:var(--text3)}
+.task-time{font-size:13px;color:var(--text3)}
+.task-pts{font-family:'Press Start 2P',monospace;font-size:7px;white-space:nowrap}
+.task-pts.blue{color:var(--blue)}.task-pts.pink{color:var(--pink)}.task-pts.amber{color:var(--amber)}.task-pts.green{color:var(--green)}
+
+/* BADGE */
+.badge-row{display:flex;gap:5px;flex-wrap:wrap}
+.badge{font-family:'Press Start 2P',monospace;font-size:6px;padding:4px 7px;border-top:2px solid #fff;border-left:2px solid #fff;border-right:2px solid var(--gray);border-bottom:2px solid var(--gray);background:var(--gray-l);color:var(--gray)}
+.badge.on.blue{background:var(--blue-l);border-right-color:var(--blue);border-bottom-color:var(--blue);color:var(--blue)}
+.badge.on.pink{background:var(--pink-l);border-right-color:var(--pink);border-bottom-color:var(--pink);color:var(--pink)}
+.badge.on.amber{background:var(--amber-l);border-right-color:var(--amber);border-bottom-color:var(--amber);color:var(--amber)}
+.badge.on.purple{background:var(--purple-l);border-right-color:var(--purple);border-bottom-color:var(--purple);color:var(--purple)}
+
+/* SKILL */
+.skill-card{padding:10px;margin-bottom:8px;border-top:2px solid #fff;border-left:2px solid #fff;border-right:2px solid var(--gray);border-bottom:2px solid var(--gray);cursor:pointer;transition:all .15s}
+.skill-card:hover{background:var(--gray-ll)}
+.skill-card.sel.blue{background:var(--blue-l)}.skill-card.sel.pink{background:var(--pink-l)}.skill-card.sel.purple{background:var(--purple-l)}.skill-card.sel.green{background:var(--green-l)}
+.sk-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.sk-ico{width:30px;height:30px;border:2px solid var(--gray);background:var(--white);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.sk-ico.blue{border-color:var(--blue);background:var(--blue-l)}.sk-ico.pink{border-color:var(--pink);background:var(--pink-l)}.sk-ico.purple{border-color:var(--purple);background:var(--purple-l)}.sk-ico.green{border-color:var(--green);background:var(--green-l)}.sk-ico.amber{border-color:var(--amber);background:var(--amber-l)}
+.sk-name{font-size:17px;color:var(--text);flex:1}
+.sk-lv{font-family:'Press Start 2P',monospace;font-size:8px;color:#fff;padding:3px 7px}
+.sk-lv.blue{background:var(--blue)}.sk-lv.pink{background:var(--pink)}.sk-lv.purple{background:var(--purple)}.sk-lv.green{background:var(--green)}.sk-lv.amber{background:var(--amber)}
+.hearts{display:flex;gap:2px;margin-bottom:5px;flex-wrap:wrap}
+.heart{font-size:14px}.heart.empty{color:#ddd}
+.heart.blue{color:var(--blue)}.heart.pink{color:var(--pink)}.heart.purple{color:var(--purple)}.heart.green{color:var(--green)}.heart.amber{color:var(--amber)}
+.xp-bar-sk{height:8px;background:#eee;border:2px solid #ccc;margin-bottom:4px}
+.xp-fill-sk{height:100%;transition:width .5s}
+.xp-fill-sk.blue{background:var(--blue-m)}.xp-fill-sk.pink{background:var(--pink-m)}.xp-fill-sk.purple{background:var(--purple-m)}.xp-fill-sk.green{background:var(--green-m)}.xp-fill-sk.amber{background:var(--amber-m)}
+.xp-hint{font-size:12px;color:var(--text3)}
+
+/* PRATIQUE ZONE */
+.pratique-zone{background:var(--gray-ll);border-top:2px solid #fff;border-left:2px solid #fff;border-right:2px solid var(--gray);border-bottom:2px solid var(--gray);padding:12px;margin-top:4px}
+.pratique-lbl{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--green);margin-bottom:10px}
+.time-row-sk{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.t-block{flex:1;text-align:center}
+.t-block input{width:100%;padding:8px;border-top:2px solid var(--gray);border-left:2px solid var(--gray);border-right:2px solid #fff;border-bottom:2px solid #fff;background:var(--white);font-size:24px;font-weight:700;color:var(--text);text-align:center;font-family:'VT323',monospace}
+.t-block label{font-family:'Press Start 2P',monospace;font-size:6px;color:var(--text3);display:block;margin-top:4px}
+.t-sep{font-size:24px;color:var(--gray);padding-top:4px}
+.val-btn{width:100%;padding:10px;background:var(--green-l);border-top:2px solid #fff;border-left:2px solid #fff;border-right:2px solid var(--green);border-bottom:2px solid var(--green);font-family:'Press Start 2P',monospace;font-size:8px;color:var(--green);cursor:pointer;transition:all .1s}
+.val-btn:active{border-top:2px solid var(--green);border-left:2px solid var(--green);border-right:2px solid #fff;border-bottom:2px solid #fff}
+
+/* AGENDA */
+.week-grid{display:grid;grid-template-columns:28px repeat(7,1fr);gap:2px;margin-bottom:2px}
+.day-hd{text-align:center;font-family:'Press Start 2P',monospace;font-size:5px;color:var(--gray);padding:3px 0}
+.day-hd.today{color:var(--pink)}
+.day-num{font-size:14px;display:block;font-family:'VT323',monospace;color:var(--text)}
+.day-num.tn{background:var(--blue);color:#fff;padding:0 3px}
+.t-row-ag{display:grid;grid-template-columns:28px repeat(7,1fr);gap:2px;margin-bottom:1px}
+.tl{font-family:'Press Start 2P',monospace;font-size:5px;color:#bbb;text-align:right;padding-right:4px;line-height:24px}
+.tc{height:24px;background:var(--gray-ll);border:1px solid var(--border-light);cursor:pointer;transition:background .1s}
+.tc:hover{background:var(--blue-l)}
+.tc.ev1{background:var(--blue-l);border-color:var(--blue)}
+.tc.ev2{background:var(--pink-l);border-color:var(--pink)}
+.tc.ev3{background:var(--green-l);border-color:var(--green)}
+.tc.ev4{background:var(--amber-l);border-color:var(--amber)}
+.tc.ev5{background:var(--purple-l);border-color:var(--purple)}
+.ev-lbl{font-family:'Press Start 2P',monospace;font-size:5px;padding:2px 3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.ev-lbl.c1{color:var(--blue)}.ev-lbl.c2{color:var(--pink)}.ev-lbl.c3{color:var(--green)}.ev-lbl.c4{color:var(--amber)}.ev-lbl.c5{color:var(--purple)}
+
+/* PROJET */
+.proj-card{border-top:2px solid #fff;border-left:2px solid #fff;border-right:2px solid var(--gray);border-bottom:2px solid var(--gray);padding:10px;margin-bottom:8px}
+.proj-card.blue{background:var(--blue-l)}.proj-card.pink{background:var(--pink-l)}.proj-card.purple{background:var(--purple-l)}.proj-card.green{background:var(--green-l)}.proj-card.amber{background:var(--amber-l)}
+.pj-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px}
+.pj-title{font-family:'Press Start 2P',monospace;font-size:7px}
+.pj-title.blue{color:var(--blue)}.pj-title.pink{color:var(--pink)}.pj-title.purple{color:var(--purple)}.pj-title.green{color:var(--green)}
+.pj-dl{font-size:12px;padding:2px 7px;border-top:2px solid #fff;border-left:2px solid #fff;border-right:2px solid var(--gray);border-bottom:2px solid var(--gray);background:var(--amber-l);color:var(--amber)}
+.pj-dl.urgent{background:var(--red-l);color:var(--red)}
+.pj-meta{font-size:13px;color:var(--text2);margin-bottom:7px}
+.pills{display:flex;gap:4px;flex-wrap:wrap}
+.pill{font-family:'Press Start 2P',monospace;font-size:6px;padding:3px 6px;border:2px solid #ccc;color:#aaa;background:#f5f5f5;cursor:default}
+.pill.done{border-color:var(--green);color:var(--green);background:var(--green-l)}
+.pill.active{color:#fff;cursor:pointer}
+.pill.active.blue{border-color:var(--blue);background:var(--blue)}
+.pill.active.pink{border-color:var(--pink);background:var(--pink)}
+.pill.active.purple{border-color:var(--purple);background:var(--purple)}
+.pill.active.green{border-color:var(--green);background:var(--green)}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal-win{background:var(--white);border-top:3px solid #fff;border-left:3px solid #fff;border-right:3px solid var(--gray);border-bottom:3px solid var(--gray);width:100%;max-width:340px}
+.modal-body{padding:14px}
+.modal-body label{font-family:'Press Start 2P',monospace;font-size:6px;color:var(--text2);display:block;margin-bottom:5px;margin-top:10px}
+.modal-body label:first-of-type{margin-top:0}
+.modal-body input,.modal-body select,.modal-body textarea{width:100%;padding:8px 10px;border-top:2px solid var(--gray);border-left:2px solid var(--gray);border-right:2px solid #fff;border-bottom:2px solid #fff;background:var(--gray-ll);font-size:14px;font-family:'VT323',monospace;color:var(--text);margin-bottom:2px}
+.modal-body textarea{resize:none;height:64px}
+.modal-row{display:flex;gap:8px}
+.modal-row input,.modal-row select{flex:1}
+.modal-btns{display:flex;gap:8px;margin-top:12px}
+.modal-btns button{flex:1;padding:9px;font-family:'Press Start 2P',monospace;font-size:7px;cursor:pointer}
+.btn-cancel{background:var(--gray-l);border-top:2px solid #fff;border-left:2px solid #fff;border-right:2px solid var(--gray);border-bottom:2px solid var(--gray);color:var(--gray)}
+.btn-confirm{border-top:2px solid #fff;border-left:2px solid #fff;border-right:2px solid #333;border-bottom:2px solid #333;color:#fff}
+.btn-confirm.blue{background:var(--blue)}.btn-confirm.pink{background:var(--pink)}.btn-confirm.green{background:var(--green)}.btn-confirm.purple{background:var(--purple)}
+
+/* TOAST */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--white);border-top:3px solid #fff;border-left:3px solid #fff;border-right:3px solid var(--gray);border-bottom:3px solid var(--gray);padding:10px 18px;font-family:'Press Start 2P',monospace;font-size:8px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:300;white-space:nowrap;color:var(--green)}
+.toast.show{opacity:1}
+.empty{text-align:center;padding:24px 16px;color:var(--text3);font-family:'Press Start 2P',monospace;font-size:8px;line-height:2}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:520px;background:var(--white);border-top:3px solid var(--gray);z-index:100;display:flex;flex-direction:column;align-items:center;padding:8px 12px 10px;gap:6px}
+.bn-top{display:flex;gap:6px;width:100%}
+.bn-bottom{display:flex;justify-content:center}
+.bn-btn{flex:1;padding:7px 4px;border-radius:0;border-top:2px solid #fff;border-left:2px solid #fff;border-right:2px solid var(--gray);border-bottom:2px solid var(--gray);background:var(--gray-l);font-family:'Press Start 2P',monospace;font-size:6px;color:var(--gray);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;transition:all .15s}
+.bn-btn .ni{font-size:16px}
+.bn-btn.active.blue{background:var(--blue-l);color:var(--blue);border-right-color:var(--blue);border-bottom-color:var(--blue)}
+.bn-btn.active.pink{background:var(--pink-l);color:var(--pink);border-right-color:var(--pink);border-bottom-color:var(--pink)}
+.bn-btn.active.green{background:var(--green-l);color:var(--green);border-right-color:var(--green);border-bottom-color:var(--green)}
+.bn-btn-center{width:160px;padding:8px 16px;border-top:2px solid #fff;border-left:2px solid #fff;border-right:2px solid var(--gray);border-bottom:2px solid var(--gray);background:var(--gray-l);font-family:'Press Start 2P',monospace;font-size:6px;color:var(--gray);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;transition:all .15s}
+.bn-btn-center .ni{font-size:16px}
+.bn-btn-center.active.purple{background:var(--purple-l);color:var(--purple);border-right-color:var(--purple);border-bottom-color:var(--purple)}
+</style>
 </head>
 <body>
-
+<div class="app">
 <div class="toast" id="toast"></div>
 
-<div class="app-header">
-  <div class="app-title">Skill<span>Tracker</span></div>
-</div>
+<!-- WINDOW -->
+<div class="window">
+  <div class="titlebar blue" id="main-titlebar">
+    <div class="wb-row">
+      <div class="wb r">×</div><div class="wb y">─</div><div class="wb g">□</div>
+    </div>
+    <div class="tb-title" id="main-tb-title">LET'S GO GIRL ✦ — accueil</div>
+  </div>
 
-<!-- ACCUEIL -->
-<div class="page active" id="page-home">
-  <div class="page-title">Bonjour 👋</div>
-  <div class="page-sub">Que veux-tu faire aujourd'hui ?</div>
-  <div class="home-grid">
-    <div class="home-card" onclick="showPage('pratique')">
-      <div class="home-card-icon" style="background:#EEEDFE">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#534AB7" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      </div>
-      <div class="home-card-name">Pratiques</div>
-      <div class="home-card-sub">Enregistrer du temps</div>
+  <!-- SCORE HEADER -->
+  <div class="score-row">
+    <div class="sc blue">
+      <div class="sc-lbl blue">SCORE</div>
+      <div class="sc-val blue" id="hdr-score">0</div>
+      <div class="sc-sub">pts / semaine</div>
     </div>
-    <div class="home-card" onclick="showPage('competences')">
-      <div class="home-card-icon" style="background:#E1F5EE">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#0F6E56" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-      </div>
-      <div class="home-card-name">Compétences</div>
-      <div class="home-card-sub">Voir ta progression</div>
+    <div class="sc pink">
+      <div class="sc-lbl pink">STREAK</div>
+      <div class="sc-val pink" id="hdr-streak">🔥 0</div>
+      <div class="sc-sub">jours de suite</div>
     </div>
-    <div class="home-card" onclick="showPage('projet')" style="grid-column:span 2;max-width:220px;margin:0 auto;width:100%">
-      <div class="home-card-icon" style="background:#FAEEDA;margin:0 auto 10px">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#854F0B" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      </div>
-      <div class="home-card-name">Projets</div>
-      <div class="home-card-sub">Créer & suivre</div>
+    <div class="sc amber">
+      <div class="sc-lbl amber">PALIER</div>
+      <div class="sc-val amber" id="hdr-palier">DÉBUTANTE</div>
+      <div class="sc-sub" id="hdr-next">→ 50 pts</div>
     </div>
   </div>
-</div>
 
-<!-- PRATIQUE -->
-<div class="page" id="page-pratique">
-  <div class="page-title">Pratique</div>
-  <div class="page-sub">Quelle compétence travailles-tu ?</div>
-  <button class="add-btn" onclick="openModal('skill')">+ Ajouter une compétence</button>
-  <div id="skill-list-pratique"></div>
-  <div class="pratique-zone">
-    <div class="pratique-zone-label" id="pratique-label">Sélectionne une compétence ci-dessus</div>
-    <div class="time-row">
-      <div class="time-block"><input type="number" id="inp-h" min="0" value="0"/><label>heures</label></div>
-      <div class="time-sep">:</div>
-      <div class="time-block"><input type="number" id="inp-m" min="0" max="59" value="0"/><label>minutes</label></div>
+  <!-- XP BAR -->
+  <div class="xp-wrap">
+    <div class="xp-bar">
+      <div class="xp-fill" id="xp-fill" style="width:0%"></div>
+      <div class="xp-notch" style="left:25%"></div>
+      <div class="xp-notch" style="left:50%"></div>
+      <div class="xp-notch" style="left:75%"></div>
     </div>
-    <button class="validate-btn" onclick="validerSession()">Valider la session ✓</button>
+    <div class="xp-labels">
+      <span class="xp-lbl">⭐ 50</span>
+      <span class="xp-lbl">🔥 150</span>
+      <span class="xp-lbl">💜 300</span>
+      <span class="xp-lbl">👑 500</span>
+    </div>
+  </div>
+
+  <!-- NAV -->
+  <div class="nav-bar">
+    <div class="nav-item active blue" id="nv-home" onclick="showPage('home')">
+      <span class="ni">🏠</span>accueil
+    </div>
+    <div class="nav-item" id="nv-agenda" onclick="showPage('agenda')">
+      <span class="ni">📅</span>agenda
+    </div>
+    <div class="nav-item" id="nv-skills" onclick="showPage('skills')">
+      <span class="ni">⚡</span>skills
+    </div>
+    <div class="nav-item" id="nv-projets" onclick="showPage('projets')">
+      <span class="ni">📋</span>projets
+    </div>
+  </div>
+
+  <!-- PAGES -->
+  <div class="win-body">
+
+    <!-- ACCUEIL -->
+    <div class="page active" id="page-home">
+      <div class="ptag blue">tâches du jour</div>
+      <div id="today-list"><div class="empty">pas de tâches aujourd'hui<br>va dans agenda pour en ajouter !</div></div>
+      <div class="ptag pink" style="margin-top:14px">badges</div>
+      <div class="badge-row" id="badge-row">
+        <div class="badge" id="b0">⭐ RÉGULIÈRE</div>
+        <div class="badge" id="b1">🔥 EN FEU</div>
+        <div class="badge" id="b2">💜 INARRÊTABLE</div>
+        <div class="badge" id="b3">👑 LÉGENDE</div>
+      </div>
+    </div>
+
+    <!-- AGENDA -->
+    <div class="page" id="page-agenda">
+      <button class="add-btn pink" onclick="openModal('task')">[ + NOUVELLE TÂCHE ]</button>
+      <div class="week-grid" id="week-header"></div>
+      <div id="time-grid"></div>
+    </div>
+
+    <!-- SKILLS -->
+    <div class="page" id="page-skills">
+      <button class="add-btn green" onclick="openModal('skill')">[ + COMPÉTENCE ]</button>
+      <div id="skill-list"></div>
+      <div class="pratique-zone">
+        <div class="pratique-lbl" id="pratique-lbl">► sélectionne une compétence</div>
+        <div class="time-row-sk">
+          <div class="t-block"><input type="number" id="inp-h" min="0" value="0"/><label>heures</label></div>
+          <div class="t-sep">:</div>
+          <div class="t-block"><input type="number" id="inp-m" min="0" max="59" value="0"/><label>minutes</label></div>
+        </div>
+        <button class="val-btn" onclick="validerSession()">[ VALIDER LA SESSION ✓ ]</button>
+      </div>
+    </div>
+
+    <!-- PROJETS -->
+    <div class="page" id="page-projets">
+      <button class="add-btn blue" onclick="openModal('project')">[ + NOUVEAU PROJET ]</button>
+      <div id="project-list"></div>
+    </div>
+
   </div>
 </div>
-
-<!-- COMPÉTENCES -->
-<div class="page" id="page-competences">
-  <div class="page-title">Tableau des compétences</div>
-  <div class="page-sub">Ta progression par compétence</div>
-  <div id="skill-list-competences"></div>
 </div>
 
-<!-- PROJETS -->
-<div class="page" id="page-projet">
-  <div class="page-title">Projets</div>
-  <div class="page-sub">Clique sur l'étape violette pour avancer</div>
-  <button class="add-btn" onclick="openModal('project')">+ Nouveau projet</button>
-  <div id="project-list"></div>
-</div>
-
-<!-- NAV -->
+<!-- BOTTOM NAV -->
 <nav class="bottom-nav">
-  <div class="nav-top">
-    <button class="nav-btn active" id="nav-home" onclick="showPage('home')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      Accueil
+  <div class="bn-top">
+    <button class="bn-btn active blue" id="bn-home" onclick="showPage('home')">
+      <span class="ni">🏠</span>accueil
     </button>
-    <button class="nav-btn" id="nav-pratique" onclick="showPage('pratique')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      Pratique
+    <button class="bn-btn" id="bn-agenda" onclick="showPage('agenda')">
+      <span class="ni">📅</span>agenda
     </button>
-    <button class="nav-btn" id="nav-competences" onclick="showPage('competences')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-      Compétences
+    <button class="bn-btn" id="bn-skills" onclick="showPage('skills')">
+      <span class="ni">⚡</span>skills
     </button>
   </div>
-  <div class="nav-bottom">
-    <button class="nav-btn-projet" id="nav-projet" onclick="showPage('projet')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      Projets
+  <div class="bn-bottom">
+    <button class="bn-btn-center" id="bn-projets" onclick="showPage('projets')">
+      <span class="ni">📋</span>projets
     </button>
   </div>
 </nav>
 
-<!-- MODAL COMPÉTENCE -->
+<!-- MODAL TÂCHE -->
+<div class="modal-overlay" id="modal-task">
+  <div class="modal-win">
+    <div class="titlebar pink">
+      <div class="wb-row"><div class="wb r">×</div></div>
+      <div class="tb-title">NOUVELLE TÂCHE</div>
+    </div>
+    <div class="modal-body">
+      <label>Titre</label>
+      <input type="text" id="t-name" placeholder="ex : Live Twitch"/>
+      <label>Jour</label>
+      <select id="t-day">
+        <option value="0">Lundi</option><option value="1">Mardi</option><option value="2">Mercredi</option>
+        <option value="3">Jeudi</option><option value="4">Vendredi</option><option value="5">Samedi</option><option value="6">Dimanche</option>
+      </select>
+      <label>Horaires</label>
+      <div class="modal-row">
+        <input type="time" id="t-start" value="09:00"/>
+        <input type="time" id="t-end" value="10:00"/>
+      </div>
+      <label>Points</label>
+      <select id="t-pts">
+        <option value="5">5 pts — légère</option>
+        <option value="10" selected>10 pts — normale</option>
+        <option value="20">20 pts — importante</option>
+        <option value="30">30 pts — majeure</option>
+      </select>
+      <label>Récurrence</label>
+      <select id="t-recur">
+        <option value="none">Une seule fois</option>
+        <option value="weekly">Chaque semaine</option>
+      </select>
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeModal('task')">ANNULER</button>
+        <button class="btn-confirm pink" onclick="addTask()">AJOUTER</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SKILL -->
 <div class="modal-overlay" id="modal-skill">
-  <div class="modal">
-    <div class="modal-title">Nouvelle compétence</div>
-    <div class="modal-sub">Définis ta compétence</div>
-    <label>Nom</label><input type="text" id="sk-name" placeholder="ex : Guitare"/>
-    <label>Emoji</label><input type="text" id="sk-emoji" placeholder="ex : 🎸" maxlength="2"/>
-    <label>Niveau de départ</label>
-    <select id="sk-level">
-      <option value="0">Niveau 0 — débutant complet</option>
-      <option value="1">Niveau 1 (4h)</option>
-      <option value="2">Niveau 2 (8h)</option>
-      <option value="3">Niveau 3 (12h)</option>
-      <option value="4">Niveau 4 (16h)</option>
-      <option value="5">Niveau 5 (20h)</option>
-      <option value="6">Niveau 6 (24h)</option>
-      <option value="7">Niveau 7 (28h)</option>
-    </select>
-    <div class="modal-btns">
-      <button class="btn-cancel" onclick="closeModal('skill')">Annuler</button>
-      <button class="btn-confirm" onclick="addSkill()">Ajouter</button>
+  <div class="modal-win">
+    <div class="titlebar green">
+      <div class="wb-row"><div class="wb r">×</div></div>
+      <div class="tb-title">NOUVELLE COMPÉTENCE</div>
+    </div>
+    <div class="modal-body">
+      <label>Nom</label><input type="text" id="sk-name" placeholder="ex : Guitare"/>
+      <label>Emoji</label><input type="text" id="sk-emoji" placeholder="ex : 🎸" maxlength="2"/>
+      <label>Niveau de départ</label>
+      <select id="sk-level">
+        <option value="0">Niveau 0 — débutant</option>
+        <option value="1">Niveau 1 (4h)</option><option value="2">Niveau 2 (8h)</option>
+        <option value="3">Niveau 3 (12h)</option><option value="4">Niveau 4 (16h)</option>
+        <option value="5">Niveau 5 (20h)</option><option value="6">Niveau 6 (24h)</option>
+        <option value="7">Niveau 7 (28h)</option>
+      </select>
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeModal('skill')">ANNULER</button>
+        <button class="btn-confirm green" onclick="addSkill()">AJOUTER</button>
+      </div>
     </div>
   </div>
 </div>
 
 <!-- MODAL PROJET -->
 <div class="modal-overlay" id="modal-project">
-  <div class="modal">
-    <div class="modal-title">Nouveau projet</div>
-    <div class="modal-sub">Définis ton projet</div>
-    <label>Titre</label><input type="text" id="pj-title" placeholder="ex : Album de musique"/>
-    <label>Description</label><textarea id="pj-desc" placeholder="Décris ton projet..."></textarea>
-    <label>Deadline pour l'étape "Idée"</label><input type="date" id="pj-deadline"/>
-    <div class="modal-btns">
-      <button class="btn-cancel" onclick="closeModal('project')">Annuler</button>
-      <button class="btn-confirm" onclick="addProject()">Créer</button>
+  <div class="modal-win">
+    <div class="titlebar blue">
+      <div class="wb-row"><div class="wb r">×</div></div>
+      <div class="tb-title">NOUVEAU PROJET</div>
+    </div>
+    <div class="modal-body">
+      <label>Titre</label><input type="text" id="pj-title" placeholder="ex : Album de musique"/>
+      <label>Description</label><textarea id="pj-desc" placeholder="Décris ton projet..."></textarea>
+      <label>Deadline pour l'étape Idée</label><input type="date" id="pj-dl"/>
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeModal('project')">ANNULER</button>
+        <button class="btn-confirm blue" onclick="addProject()">CRÉER</button>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- MODAL AVANCER ÉTAPE -->
+<!-- MODAL AVANCER -->
 <div class="modal-overlay" id="modal-advance">
-  <div class="modal">
-    <div class="modal-title" id="adv-title">Étape suivante</div>
-    <div class="modal-sub">Définis la deadline pour cette étape (optionnel)</div>
-    <label id="adv-label">Deadline</label><input type="date" id="adv-deadline"/>
-    <div class="modal-btns">
-      <button class="btn-cancel" onclick="closeModal('advance')">Annuler</button>
-      <button class="btn-confirm" onclick="confirmAdvance()">Valider</button>
+  <div class="modal-win">
+    <div class="titlebar purple">
+      <div class="wb-row"><div class="wb r">×</div></div>
+      <div class="tb-title" id="adv-title">ÉTAPE SUIVANTE</div>
+    </div>
+    <div class="modal-body">
+      <label id="adv-label">Deadline</label>
+      <input type="date" id="adv-dl"/>
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeModal('advance')">ANNULER</button>
+        <button class="btn-confirm purple" onclick="confirmAdvance()">VALIDER</button>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
-const SEUILS = [0,4,8,12,16,20,24,28,36,44,52];
-const STAGES = ['Idée','Écriture','Production','Réalisation','Post-prod','Terminé'];
-const COLORS = ['#EEEDFE','#E1F5EE','#FAEEDA','#FAECE7','#E6F1FB'];
+const SEUILS=[0,4,8,12,16,20,24,28,36,44,52];
+const STAGES=['Idée','Écriture','Production','Réalisation','Post-prod','Terminé'];
+const SK_COLORS=['blue','pink','purple','green','amber'];
+const PJ_COLORS=['blue','pink','purple','green','amber'];
+const PALIERS=[{pts:50,label:'RÉGULIÈRE',badge:'b0',col:'blue'},{pts:150,label:'EN FEU',badge:'b1',col:'pink'},{pts:300,label:'INARRÊTABLE',badge:'b2',col:'purple'},{pts:500,label:'LÉGENDE',badge:'b3',col:'amber'}];
+const JOURS=['LUN','MAR','MER','JEU','VEN','SAM','DIM'];
+const HOURS=[7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22];
 
-let skills = JSON.parse(localStorage.getItem('st_skills')||'[]');
-let projects = JSON.parse(localStorage.getItem('st_projects')||'[]');
-let selectedSkillId = null;
-let pendingAdvanceId = null;
+let skills=JSON.parse(localStorage.getItem('lgg_skills')||'[]');
+let projects=JSON.parse(localStorage.getItem('lgg_projects')||'[]');
+let tasks=JSON.parse(localStorage.getItem('lgg_tasks')||'[]');
+let selectedSkillId=null;
+let pendingAdvId=null;
+let streak=parseInt(localStorage.getItem('lgg_streak')||'0');
 
-function saveSkills(){ localStorage.setItem('st_skills', JSON.stringify(skills)); }
-function saveProjects(){ localStorage.setItem('st_projects', JSON.stringify(projects)); }
+function save(k,v){localStorage.setItem(k,JSON.stringify(v));}
 
-function getNiveau(mins){ const h=mins/60; for(let i=SEUILS.length-1;i>=0;i--){ if(h>=SEUILS[i]) return Math.min(i,10); } return 0; }
-function getJauge(mins){ const h=mins/60,n=getNiveau(mins); if(n>=10) return 100; return Math.min(100,((h-SEUILS[n])/(SEUILS[n+1]-SEUILS[n]))*100); }
-function getHint(mins){ const n=getNiveau(mins); if(n>=10) return '🏆 Niveau maximum atteint !'; return '+'+(SEUILS[n+1]-mins/60).toFixed(1)+'h pour le niveau '+(n+1); }
+function todayIdx(){const d=new Date().getDay();return d===0?6:d-1;}
+function getWeekStart(){const d=new Date();const di=d.getDay();const diff=di===0?-6:1-di;d.setDate(d.getDate()+diff);d.setHours(0,0,0,0);return d;}
+function getWeekDays(){const ws=getWeekStart();return Array.from({length:7},(_,i)=>{const d=new Date(ws);d.setDate(d.getDate()+i);return d;});}
+function isToday(d){const t=new Date();return d.getDate()===t.getDate()&&d.getMonth()===t.getMonth()&&d.getFullYear()===t.getFullYear();}
+
+function getNiveau(m){const h=m/60;for(let i=SEUILS.length-1;i>=0;i--)if(h>=SEUILS[i])return Math.min(i,10);return 0;}
+function getJauge(m){const h=m/60,n=getNiveau(m);if(n>=10)return 100;return Math.min(100,((h-SEUILS[n])/(SEUILS[n+1]-SEUILS[n]))*100);}
+function getHint(m){const n=getNiveau(m);if(n>=10)return '🏆 NIVEAU MAX !';return '+'+(SEUILS[n+1]-m/60).toFixed(1)+'h pour niveau '+(n+1);}
+
+function weekScore(){return tasks.filter(t=>t.done).reduce((s,t)=>s+(t.pts||0),0);}
+
+function updateHeader(){
+  const sc=weekScore();
+  document.getElementById('hdr-score').textContent=sc;
+  document.getElementById('hdr-streak').textContent='🔥 '+streak;
+  const palier=PALIERS.slice().reverse().find(p=>sc>=p.pts);
+  const next=PALIERS.find(p=>p.pts>sc);
+  document.getElementById('hdr-palier').textContent=palier?palier.label:'DÉBUTANTE';
+  document.getElementById('hdr-next').textContent=next?'→ '+next.pts+' pts':'👑 MAX !';
+  const maxPts=500;
+  document.getElementById('xp-fill').style.width=Math.min(100,sc/maxPts*100)+'%';
+  PALIERS.forEach((p,i)=>{
+    const el=document.getElementById('b'+i);
+    if(!el)return;
+    el.className='badge'+(sc>=p.pts?' on '+p.col:'');
+  });
+}
+
+function renderTodayTasks(){
+  const ti=todayIdx();
+  const todayTasks=tasks.filter(t=>t.day===ti);
+  const el=document.getElementById('today-list');
+  if(!todayTasks.length){el.innerHTML='<div class="empty">pas de tâches aujourd\'hui !<br>va dans agenda pour en ajouter</div>';return;}
+  const PTS_COLORS=['blue','pink','amber','green','purple'];
+  el.innerHTML='';
+  todayTasks.forEach((t,i)=>{
+    const row=document.createElement('div');row.className='task-row';
+    const col=PTS_COLORS[i%PTS_COLORS.length];
+    row.innerHTML=`<div class="task-check${t.done?' done':''}" onclick="toggleTask('${t.id}')">${t.done?'✓':''}</div><div class="task-name${t.done?' done':''}">${t.name}</div><div class="task-time">${t.start}–${t.end}</div><div class="task-pts ${col}">+${t.pts} PTS</div>`;
+    el.appendChild(row);
+  });
+}
+
+function toggleTask(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  t.done=!t.done;
+  save('lgg_tasks',tasks);
+  renderTodayTasks();updateHeader();
+}
+
+function renderAgenda(){
+  const days=getWeekDays();
+  const wh=document.getElementById('week-header');
+  wh.innerHTML='<div></div>'+days.map((d,i)=>`<div class="day-hd${isToday(d)?' today':''}"><span style="font-size:5px">${JOURS[i]}</span><span class="day-num${isToday(d)?' tn':''}">${d.getDate()}</span></div>`).join('');
+  const tg=document.getElementById('time-grid');tg.innerHTML='';
+  const EV_CLS=['ev1','ev2','ev3','ev4','ev5'];
+  const LBL_CLS=['c1','c2','c3','c4','c5'];
+  HOURS.forEach(h=>{
+    const row=document.createElement('div');row.className='t-row-ag';
+    row.innerHTML=`<div class="tl">${h}H</div>`;
+    for(let d=0;d<7;d++){
+      const evs=tasks.filter(t=>t.day===d&&parseInt(t.start)===h);
+      const cell=document.createElement('div');
+      if(evs.length){
+        const idx=tasks.indexOf(evs[0])%5;
+        cell.className='tc '+EV_CLS[idx];
+        cell.innerHTML=`<div class="ev-lbl ${LBL_CLS[idx]}">${evs[0].name}</div>`;
+      } else {
+        cell.className='tc';
+        cell.onclick=()=>{document.getElementById('t-day').value=d;document.getElementById('t-start').value=String(h).padStart(2,'0')+':00';document.getElementById('t-end').value=String(Math.min(h+1,23)).padStart(2,'0')+':00';openModal('task');};
+      }
+      row.appendChild(cell);
+    }
+    tg.appendChild(row);
+  });
+}
 
 function renderSkills(){
-  ['pratique','competences'].forEach(view=>{
-    const el=document.getElementById('skill-list-'+view);
-    if(!el) return;
-    if(skills.length===0){ el.innerHTML='<div class="empty"><div class="empty-icon">🎯</div>Aucune compétence encore.<br>Ajoute-en une !</div>'; return; }
-    el.innerHTML='';
-    skills.forEach(s=>{
-      const niv=getNiveau(s.mins),pct=getJauge(s.mins).toFixed(1),hint=getHint(s.mins);
-      const isSel=view==='pratique'&&s.id===selectedSkillId;
-      const card=document.createElement('div');
-      card.className='card'+(view==='pratique'?' clickable':'')+(isSel?' selected':'');
-      if(view==='pratique') card.onclick=()=>selectSkill(s.id);
-      const extra=view==='competences'?`<div style="font-size:11px;color:var(--text2);margin-top:6px">${(s.mins/60).toFixed(1)}h pratiquées au total</div>`:'';
-      card.innerHTML=`<div class="card-header"><div class="card-icon" style="background:${s.color}">${s.emoji}</div><div class="card-name">${s.name}</div><div class="card-level">Niv. ${niv}</div></div><div class="bar-row"><span class="bar-num">0</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div><span class="bar-num">10</span></div><div class="bar-hint">${hint}</div>${extra}`;
-      el.appendChild(card);
-    });
+  const el=document.getElementById('skill-list');if(!el)return;
+  if(!skills.length){el.innerHTML='<div class="empty">aucune compétence !<br>ajoute-en une ci-dessus</div>';return;}
+  el.innerHTML='';
+  skills.forEach(s=>{
+    const niv=getNiveau(s.mins),pct=getJauge(s.mins),hint=getHint(s.mins);
+    const col=s.color||'blue';
+    const isSel=s.id===selectedSkillId;
+    const card=document.createElement('div');
+    card.className=`skill-card${isSel?' sel '+col:''}`;
+    card.onclick=()=>selectSkill(s.id);
+    const hearts=Array.from({length:10},(_,i)=>`<span class="heart${i<niv?' '+col:' empty'}">♥</span>`).join('');
+    card.innerHTML=`<div class="sk-top"><div class="sk-ico ${col}">${s.emoji}</div><div class="sk-name">${s.name}</div><div class="sk-lv ${col}">NIV. ${niv}</div></div><div class="hearts">${hearts}</div><div class="xp-bar-sk"><div class="xp-fill-sk ${col}" style="width:${pct.toFixed(1)}%"></div></div><div class="xp-hint">${hint} · ${(s.mins/60).toFixed(1)}h au total</div>`;
+    el.appendChild(card);
   });
 }
 
 function selectSkill(id){
   selectedSkillId=id;
   const s=skills.find(x=>x.id===id);
-  document.getElementById('pratique-label').textContent='Compétence sélectionnée : '+s.name;
+  document.getElementById('pratique-lbl').textContent='► compétence : '+s.name.toUpperCase();
   renderSkills();
 }
 
 function validerSession(){
-  if(selectedSkillId===null){ showToast('Sélectionne une compétence !'); return; }
+  if(!selectedSkillId){showToast('SÉLECTIONNE UNE COMPÉTENCE !');return;}
   const h=parseInt(document.getElementById('inp-h').value)||0;
   const m=parseInt(document.getElementById('inp-m').value)||0;
   const added=h*60+m;
-  if(added===0){ showToast('Entre une durée !'); return; }
+  if(!added){showToast('ENTRE UNE DURÉE !');return;}
   const s=skills.find(x=>x.id===selectedSkillId);
   const before=getNiveau(s.mins);
   s.mins+=added;
-  const after=getNiveau(s.mins);
-  saveSkills(); renderSkills();
-  if(after>before) showToast('🎉 Niveau '+after+' atteint en '+s.name+' !');
-  else showToast('✓ '+(h>0?h+'h':'')+(m>0?m+'min':'')+' enregistrées sur '+s.name);
-  document.getElementById('inp-h').value=0;
-  document.getElementById('inp-m').value=0;
+  save('lgg_skills',skills);renderSkills();
+  if(getNiveau(s.mins)>before)showToast('🎉 NIVEAU '+getNiveau(s.mins)+' EN '+s.name.toUpperCase()+' !');
+  else showToast('✓ '+(h?h+'H':'')+( m?m+'MIN':'')+' SUR '+s.name.toUpperCase());
+  document.getElementById('inp-h').value=0;document.getElementById('inp-m').value=0;
 }
 
 function renderProjects(){
-  const el=document.getElementById('project-list');
-  if(!el) return;
-  if(projects.length===0){ el.innerHTML='<div class="empty"><div class="empty-icon">📋</div>Aucun projet encore.<br>Crée-en un !</div>'; return; }
+  const el=document.getElementById('project-list');if(!el)return;
+  if(!projects.length){el.innerHTML='<div class="empty">aucun projet !<br>crée-en un ci-dessus</div>';return;}
   el.innerHTML='';
-  projects.forEach(p=>{
+  projects.forEach((p,pi)=>{
+    const col=PJ_COLORS[pi%PJ_COLORS.length];
     const dl=p.deadlines[p.stage];
-    const dlInfo=formatDeadline(dl);
-    const dlHtml=dlInfo?`<div class="deadline-badge ${dlInfo.urgent?'urgent':''}">${dlInfo.urgent?'⚠️ ':'📅 '}${dlInfo.label}</div>`:`<div class="deadline-badge none">Pas de deadline</div>`;
+    let dlHtml='<div class="pj-dl" style="background:var(--gray-l);color:var(--gray);border:2px solid #ccc">PAS DE DL</div>';
+    if(dl){const d=new Date(dl),today=new Date();today.setHours(0,0,0,0);const diff=Math.ceil((d-today)/86400000);dlHtml=`<div class="pj-dl${diff<=7?' urgent':''}">${diff<=7?'⚠️':'📅'} ${d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}</div>`;}
     const termine=p.stage>=STAGES.length-1;
-    const pills=STAGES.map((st,i)=>{ const cls=i<p.stage?'done':i===p.stage?'active':'todo'; const click=cls==='active'&&!termine?`onclick="askAdvance('${p.id}')"` :''; return `<span class="pill ${cls}" ${click}>${st}</span>`; }).join('');
-    const meta=termine?'✅ Projet terminé !':`Étape active : <strong>${STAGES[p.stage]}</strong> — clique pour avancer`;
-    const card=document.createElement('div');
-    card.className='card';
-    card.innerHTML=`<div class="proj-header"><div class="proj-title">${p.title}</div>${dlHtml}</div><div class="proj-meta">${meta}</div><div class="pills">${pills}</div>`;
+    const pills=STAGES.map((st,i)=>{const cls=i<p.stage?'done':i===p.stage?'active '+col:'';const click=cls.includes('active')&&!termine?`onclick="askAdvance('${p.id}','${col}')"` :'';return `<span class="pill ${cls}" ${click}>${st}</span>`;}).join('');
+    const card=document.createElement('div');card.className='proj-card '+col;
+    card.innerHTML=`<div class="pj-top"><div class="pj-title ${col}">${p.title.toUpperCase()}</div>${dlHtml}</div><div class="pj-meta">${termine?'✅ TERMINÉ !':STAGES[p.stage].toUpperCase()+' — clique l\'étape pour avancer'}</div><div class="pills">${pills}</div>`;
     el.appendChild(card);
   });
 }
 
-function formatDeadline(str){
-  if(!str) return null;
-  const d=new Date(str),today=new Date();
-  today.setHours(0,0,0,0);
-  const diff=Math.ceil((d-today)/(1000*60*60*24));
-  return { label:d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}), urgent:diff<=7 };
-}
-
-function askAdvance(projectId){
-  const p=projects.find(x=>x.id===projectId);
-  if(!p||p.stage>=STAGES.length-1) return;
-  pendingAdvanceId=projectId;
+function askAdvance(id,col){
+  pendingAdvId=id;
+  const p=projects.find(x=>x.id===id);if(!p||p.stage>=STAGES.length-1)return;
   const next=STAGES[p.stage+1];
-  document.getElementById('adv-title').textContent='Passer à : '+next;
-  document.getElementById('adv-label').textContent='Deadline pour "'+next+'"';
-  document.getElementById('adv-deadline').value='';
+  document.getElementById('adv-title').textContent='PASSER À : '+next.toUpperCase();
+  document.getElementById('adv-label').textContent='Deadline pour "'+next+'" (optionnel)';
+  document.getElementById('adv-dl').value='';
   openModal('advance');
 }
 
 function confirmAdvance(){
-  const p=projects.find(x=>x.id===pendingAdvanceId);
-  if(!p) return;
-  p.stage++;
-  p.deadlines[p.stage]=document.getElementById('adv-deadline').value||'';
-  saveProjects(); renderProjects();
-  closeModal('advance');
-  showToast('✓ Étape : '+STAGES[p.stage]);
-  pendingAdvanceId=null;
+  const p=projects.find(x=>x.id===pendingAdvId);if(!p)return;
+  p.stage++;p.deadlines[p.stage]=document.getElementById('adv-dl').value||'';
+  save('lgg_projects',projects);renderProjects();closeModal('advance');
+  showToast('✓ ÉTAPE : '+STAGES[p.stage].toUpperCase());
+}
+
+function addTask(){
+  const name=document.getElementById('t-name').value.trim();
+  if(!name){showToast('ENTRE UN TITRE !');return;}
+  tasks.push({id:Date.now().toString(),name,day:parseInt(document.getElementById('t-day').value),start:document.getElementById('t-start').value,end:document.getElementById('t-end').value,pts:parseInt(document.getElementById('t-pts').value),recur:document.getElementById('t-recur').value,done:false});
+  save('lgg_tasks',tasks);renderAgenda();renderTodayTasks();updateHeader();
+  closeModal('task');showToast('✓ '+name.toUpperCase()+' AJOUTÉ !');
+  document.getElementById('t-name').value='';
 }
 
 function addSkill(){
   const name=document.getElementById('sk-name').value.trim();
+  if(!name){showToast('ENTRE UN NOM !');return;}
   const emoji=document.getElementById('sk-emoji').value.trim()||'⭐';
   const level=parseInt(document.getElementById('sk-level').value)||0;
-  if(!name){ showToast('Entre un nom !'); return; }
-  skills.push({ id:Date.now().toString(), name, emoji, color:COLORS[skills.length%COLORS.length], mins:SEUILS[level]*60 });
-  saveSkills(); renderSkills();
-  closeModal('skill');
-  showToast('✓ '+name+' ajouté !');
-  document.getElementById('sk-name').value='';
-  document.getElementById('sk-emoji').value='';
+  skills.push({id:Date.now().toString(),name,emoji,color:SK_COLORS[skills.length%SK_COLORS.length],mins:SEUILS[level]*60});
+  save('lgg_skills',skills);renderSkills();closeModal('skill');
+  showToast('✓ '+name.toUpperCase()+' AJOUTÉ !');
+  document.getElementById('sk-name').value='';document.getElementById('sk-emoji').value='';
 }
 
 function addProject(){
   const title=document.getElementById('pj-title').value.trim();
-  const desc=document.getElementById('pj-desc').value.trim();
-  const deadline=document.getElementById('pj-deadline').value;
-  if(!title){ showToast('Entre un titre !'); return; }
-  const deadlines=['','','','','',''];
-  deadlines[0]=deadline;
-  projects.push({ id:Date.now().toString(), title, desc, stage:0, deadlines });
-  saveProjects(); renderProjects();
-  closeModal('project');
-  showToast('✓ '+title+' créé !');
-  document.getElementById('pj-title').value='';
-  document.getElementById('pj-desc').value='';
-  document.getElementById('pj-deadline').value='';
+  if(!title){showToast('ENTRE UN TITRE !');return;}
+  const dls=['','','','','',''];dls[0]=document.getElementById('pj-dl').value;
+  projects.push({id:Date.now().toString(),title,desc:document.getElementById('pj-desc').value,stage:0,deadlines:dls});
+  save('lgg_projects',projects);renderProjects();closeModal('project');
+  showToast('✓ '+title.toUpperCase()+' CRÉÉ !');
+  document.getElementById('pj-title').value='';document.getElementById('pj-desc').value='';document.getElementById('pj-dl').value='';
 }
 
-const NAV_IDS=['home','pratique','competences','projet'];
+const PAGE_COLORS={home:'blue',agenda:'pink',skills:'green',projets:'purple'};
+const TB_TITLES={home:"LET'S GO GIRL ✦ — accueil",agenda:"LET'S GO GIRL ✦ — agenda",skills:"LET'S GO GIRL ✦ — skills",projets:"LET'S GO GIRL ✦ — projets"};
 function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
-  NAV_IDS.forEach(n=>{ const btn=document.getElementById('nav-'+n); if(btn) btn.classList.toggle('active',n===id); });
+  ['home','agenda','skills','projets'].forEach(n=>{
+    const nv=document.getElementById('nv-'+n);const bn=document.getElementById('bn-'+n);
+    if(nv){nv.className='nav-item'+(n===id?' active '+PAGE_COLORS[n]:'');}
+    if(bn){const base=bn.classList.contains('bn-btn-center')?'bn-btn-center':'bn-btn';bn.className=base+(n===id?' active '+PAGE_COLORS[n]:'');}
+  });
+  const col=PAGE_COLORS[id];
+  document.getElementById('main-titlebar').className='titlebar '+col;
+  document.getElementById('main-tb-title').textContent=TB_TITLES[id];
+  if(id==='agenda')renderAgenda();
+  if(id==='home'){renderTodayTasks();updateHeader();}
 }
 
-function openModal(type){ document.getElementById('modal-'+type).classList.add('open'); }
-function closeModal(type){ document.getElementById('modal-'+type).classList.remove('open'); }
+function openModal(t){document.getElementById('modal-'+t).classList.add('open');}
+function closeModal(t){document.getElementById('modal-'+t).classList.remove('open');}
+let _tt;function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),2500);}
 
-let toastTimer;
-function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2500); }
-
-renderSkills();
-renderProjects();
+renderSkills();renderProjects();renderTodayTasks();updateHeader();
 </script>
 </body>
 </html>
