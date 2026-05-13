@@ -5,23 +5,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Let's Go Girl ✦</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet"/>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyBTEiXZQXwi6E4qjE8ehhp8JY7is8eLN4Y",
-    authDomain: "letsgogirl-b6b33.firebaseapp.com",
-    projectId: "letsgogirl-b6b33",
-    storageBucket: "letsgogirl-b6b33.firebasestorage.app",
-    messagingSenderId: "15232606455",
-    appId: "1:15232606455:web:4e22e6c6f70724a4a0f3f2"
-  };
-  firebase.initializeApp(firebaseConfig);
-  window._db = firebase.firestore();
+  // Firebase sera initialisé après le chargement des scripts
+  window._firebaseReady = false;
   window._USER_DOC = "letsgogirl/main";
-  window._firebaseReady = true;
-  window.dispatchEvent(new Event('firebase-ready'));
+
+  function initFirebase(){
+    try {
+      const firebaseConfig = {
+        apiKey: "AIzaSyBTEiXZQXwi6E4qjE8ehhp8JY7is8eLN4Y",
+        authDomain: "letsgogirl-b6b33.firebaseapp.com",
+        projectId: "letsgogirl-b6b33",
+        storageBucket: "letsgogirl-b6b33.firebasestorage.app",
+        messagingSenderId: "15232606455",
+        appId: "1:15232606455:web:4e22e6c6f70724a4a0f3f2"
+      };
+      if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+      window._db = firebase.firestore();
+      window._firebaseReady = true;
+      window.dispatchEvent(new Event('firebase-ready'));
+      console.log('Firebase prêt');
+    } catch(e){
+      console.warn('Firebase init error:', e);
+    }
+  }
 </script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" onload="initFirebase()"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -795,10 +805,10 @@ async function syncToFirebase(){
 }
 
 async function loadFromFirebase(){
-  if(!window._db) return false;
+  if(!window._db){ console.warn('DB not ready'); return false; }
   try {
     const snap=await window._db.doc(window._USER_DOC).get();
-    if(!snap.exists) return false;
+    if(!snap.exists){ console.log('No Firebase data yet'); return false; }
     const data=snap.data();
     if(data.skills) localStorage.setItem('lgg_skills', JSON.stringify(data.skills));
     if(data.projects) localStorage.setItem('lgg_projects', JSON.stringify(data.projects));
@@ -1734,21 +1744,20 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 
 // ── INIT : charger depuis Firebase puis afficher ──
 async function initApp(){
-  // Afficher un écran de chargement
+  // Afficher écran de chargement
   document.getElementById('loading-screen').style.display='flex';
 
-  // Attendre que Firebase soit prêt (max 3 secondes)
-  if(!window._firebaseReady){
-    await new Promise(resolve=>{
-      window.addEventListener('firebase-ready', resolve, {once:true});
-      setTimeout(resolve, 3000);
-    });
-  }
+  // Attendre Firebase (max 5 secondes)
+  await new Promise(resolve=>{
+    if(window._firebaseReady){ resolve(); return; }
+    window.addEventListener('firebase-ready', resolve, {once:true});
+    setTimeout(resolve, 5000);
+  });
 
-  // Charger depuis Firebase
+  // Charger depuis Firebase en priorité
   const loaded = await loadFromFirebase();
 
-  // Recharger les variables depuis localStorage (maintenant à jour)
+  // Toujours recharger TOUTES les variables depuis localStorage après le load
   skills = JSON.parse(localStorage.getItem('lgg_skills')||'[]');
   projects = JSON.parse(localStorage.getItem('lgg_projects')||'[]');
   tasks = JSON.parse(localStorage.getItem('lgg_tasks')||'[]');
@@ -1758,10 +1767,14 @@ async function initApp(){
   streak = parseInt(localStorage.getItem('lgg_streak')||'0');
   lastRewardAt = parseInt(localStorage.getItem('lgg_last_reward')||'0');
 
-  // Cacher l'écran de chargement
+  // Cacher écran de chargement
   document.getElementById('loading-screen').style.display='none';
 
-  // Afficher l'app
+  if(loaded){
+    showToast('✓ DONNÉES SYNCHRONISÉES !');
+  }
+
+  // Tout afficher
   renderSkills();renderProjects();renderTodayTasks();renderHabits();
   renderHomeHabits();renderHomeProjects();renderHomeObjectifs();
   renderObjectifs();updateHeader();
