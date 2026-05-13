@@ -5,10 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Let's Go Girl ✦</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet"/>
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-  import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
   const firebaseConfig = {
     apiKey: "AIzaSyBTEiXZQXwi6E4qjE8ehhp8JY7is8eLN4Y",
     authDomain: "letsgogirl-b6b33.firebaseapp.com",
@@ -17,18 +16,9 @@
     messagingSenderId: "15232606455",
     appId: "1:15232606455:web:4e22e6c6f70724a4a0f3f2"
   };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const USER_DOC = "letsgogirl/main";
-
-  // Expose db and helpers to global scope
-  window._db = db;
-  window._doc = doc;
-  window._setDoc = setDoc;
-  window._getDoc = getDoc;
-  window._onSnapshot = onSnapshot;
-  window._USER_DOC = USER_DOC;
+  firebase.initializeApp(firebaseConfig);
+  window._db = firebase.firestore();
+  window._USER_DOC = "letsgogirl/main";
   window._firebaseReady = true;
   window.dispatchEvent(new Event('firebase-ready'));
 </script>
@@ -797,8 +787,8 @@ async function syncToFirebase(){
       scoreHistory: JSON.parse(localStorage.getItem('lgg_score_history')||'[]'),
       updatedAt: Date.now()
     };
-    const ref=window._doc(window._db, window._USER_DOC);
-    await window._setDoc(ref, data);
+    await window._db.doc(window._USER_DOC).set(data);
+    console.log('Firebase synced OK');
   } catch(e){
     console.warn('Firebase sync error:', e);
   }
@@ -807,9 +797,8 @@ async function syncToFirebase(){
 async function loadFromFirebase(){
   if(!window._db) return false;
   try {
-    const ref=window._doc(window._db, window._USER_DOC);
-    const snap=await window._getDoc(ref);
-    if(!snap.exists()) return false;
+    const snap=await window._db.doc(window._USER_DOC).get();
+    if(!snap.exists) return false;
     const data=snap.data();
     if(data.skills) localStorage.setItem('lgg_skills', JSON.stringify(data.skills));
     if(data.projects) localStorage.setItem('lgg_projects', JSON.stringify(data.projects));
@@ -820,6 +809,7 @@ async function loadFromFirebase(){
     if(data.streak) localStorage.setItem('lgg_streak', data.streak);
     if(data.lastReward) localStorage.setItem('lgg_last_reward', data.lastReward);
     if(data.scoreHistory) localStorage.setItem('lgg_score_history', JSON.stringify(data.scoreHistory));
+    console.log('Firebase loaded OK');
     return true;
   } catch(e){
     console.warn('Firebase load error:', e);
