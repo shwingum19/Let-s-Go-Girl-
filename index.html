@@ -1744,8 +1744,9 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 
 // ── INIT : charger depuis Firebase puis afficher ──
 async function initApp(){
-  // Afficher écran de chargement
-  document.getElementById('loading-screen').style.display='flex';
+  // Afficher écran de chargement (avec vérification)
+  const loadingEl=document.getElementById('loading-screen');
+  if(loadingEl) loadingEl.style.display='flex';
 
   // Attendre Firebase (max 5 secondes)
   await new Promise(resolve=>{
@@ -1768,7 +1769,8 @@ async function initApp(){
   lastRewardAt = parseInt(localStorage.getItem('lgg_last_reward')||'0');
 
   // Cacher écran de chargement
-  document.getElementById('loading-screen').style.display='none';
+  const loadingEl2=document.getElementById('loading-screen');
+  if(loadingEl2) loadingEl2.style.display='none';
 
   if(loaded){
     showToast('✓ DONNÉES SYNCHRONISÉES !');
@@ -1780,7 +1782,11 @@ async function initApp(){
   renderObjectifs();updateHeader();
 }
 
-initApp();
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
 
 // ── EMOJI PICKER ──
 const EMOJI_CATS = {
