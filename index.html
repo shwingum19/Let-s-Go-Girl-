@@ -208,6 +208,15 @@ body{background:var(--bg);font-family:'VT323',monospace;color:var(--text);min-he
 .reward-card:hover{border-right-color:var(--pink);border-bottom-color:var(--pink);background:var(--pink-l)}
 .reward-card.selected{background:var(--pink-l);border-right-color:var(--pink);border-bottom-color:var(--pink)}
 .reward-card-icon{font-size:22px;flex-shrink:0}
+.notes-filter{font-family:var(--font-pixel);font-size:6px;padding:4px 8px;border-top:2px solid #fff;border-left:2px solid #fff;border-right:2px solid var(--gray);border-bottom:2px solid var(--gray);background:var(--gray-l);color:var(--gray);cursor:pointer;transition:all .15s}
+.notes-filter.active{background:var(--purple-l);color:var(--purple);border-right-color:var(--purple);border-bottom-color:var(--purple)}
+.note-card{border-top:2px solid #fff;border-left:2px solid #fff;border-right:2px solid var(--gray);border-bottom:2px solid var(--gray);padding:12px 14px;margin-bottom:10px;cursor:pointer;transition:all .15s}
+.note-card:hover{opacity:.9}
+.note-title{font-family:var(--font-pixel);font-size:8px;margin-bottom:6px}
+.note-body{font-size:14px;color:var(--text2);line-height:1.5;margin-bottom:8px;white-space:pre-wrap;word-break:break-word}
+.note-meta{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.note-tag{font-family:var(--font-pixel);font-size:6px;padding:2px 7px;border:1px solid currentColor}
+.note-date{font-size:11px;color:var(--text3)}
 .emoji-picker{position:fixed;z-index:500;background:#fff;border-top:3px solid #fff;border-left:3px solid #fff;border-right:3px solid var(--gray);border-bottom:3px solid var(--gray);padding:10px;width:260px;max-height:280px;overflow-y:auto;box-shadow:4px 4px 0 rgba(0,0,0,.15)}
 .emoji-cats{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;border-bottom:1px solid var(--border-light);padding-bottom:6px}
 .emoji-cat{font-family:var(--font-pixel);font-size:6px;padding:3px 6px;border-top:2px solid #fff;border-left:2px solid #fff;border-right:2px solid var(--gray);border-bottom:2px solid var(--gray);cursor:pointer;background:var(--gray-l);color:var(--gray)}
@@ -274,6 +283,7 @@ body{background:var(--bg);font-family:'VT323',monospace;color:var(--text);min-he
     <div class="nav-item" id="nv-habitudes" onclick="showPage('habitudes')"><span class="ni">✅</span>habitudes</div>
     <div class="nav-item" id="nv-objectifs" onclick="showPage('objectifs')"><span class="ni">🎯</span>objectifs</div>
     <div class="nav-item" id="nv-bilan" onclick="showPage('bilan')"><span class="ni">📊</span>bilan</div>
+    <div class="nav-item" id="nv-notes" onclick="showPage('notes')"><span class="ni">📝</span>notes</div>
   </div>
 
   <div class="win-body">
@@ -343,6 +353,18 @@ body{background:var(--bg);font-family:'VT323',monospace;color:var(--text);min-he
     <div class="page" id="page-objectifs">
       <button class="add-btn amber" onclick="openModal('objectif')">[ + NOUVEL OBJECTIF ]</button>
       <div id="objectif-list"></div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="page" id="page-notes">
+      <button class="add-btn" style="color:var(--purple);border-color:var(--purple)" onclick="openModal('note')">[ + NOUVELLE NOTE ]</button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" id="notes-filters">
+        <button class="notes-filter active" data-filter="all" onclick="filterNotes('all')">TOUTES</button>
+        <button class="notes-filter" data-filter="projet" onclick="filterNotes('projet')">PROJETS</button>
+        <button class="notes-filter" data-filter="skill" onclick="filterNotes('skill')">COMPÉTENCES</button>
+        <button class="notes-filter" data-filter="libre" onclick="filterNotes('libre')">LIBRES</button>
+      </div>
+      <div id="notes-list"></div>
     </div>
 
     <!-- BILAN -->
@@ -795,6 +817,7 @@ async function syncToFirebase(){
       streak: localStorage.getItem('lgg_streak')||'0',
       lastReward: localStorage.getItem('lgg_last_reward')||'0',
       scoreHistory: JSON.parse(localStorage.getItem('lgg_score_history')||'[]'),
+      notes: JSON.parse(localStorage.getItem('lgg_notes')||'[]'),
       updatedAt: Date.now()
     };
     await window._db.doc(window._USER_DOC).set(data);
@@ -819,6 +842,7 @@ async function loadFromFirebase(){
     if(data.streak) localStorage.setItem('lgg_streak', data.streak);
     if(data.lastReward) localStorage.setItem('lgg_last_reward', data.lastReward);
     if(data.scoreHistory) localStorage.setItem('lgg_score_history', JSON.stringify(data.scoreHistory));
+    if(data.notes) localStorage.setItem('lgg_notes', JSON.stringify(data.notes));
     console.log('Firebase loaded OK');
     return true;
   } catch(e){
@@ -1484,6 +1508,153 @@ function renderBilan(){
   }
 }
 
+// ── NOTES ──
+let notes = JSON.parse(localStorage.getItem('lgg_notes')||'[]');
+let editingNoteId = null;
+let currentNoteFilter = 'all';
+const NOTE_COLORS = ['purple','blue','pink','green','amber'];
+
+function updateNoteLinkOptions(){
+  const type=document.getElementById('nt-link-type').value;
+  const sel=document.getElementById('nt-link-id');
+  sel.style.display=type==='libre'?'none':'block';
+  sel.innerHTML='';
+  if(type==='projet'){
+    projects.forEach(p=>{ const o=document.createElement('option');o.value=p.id;o.textContent=p.title;sel.appendChild(o); });
+  } else if(type==='skill'){
+    skills.forEach(s=>{ const o=document.createElement('option');o.value=s.id;o.textContent=s.emoji+' '+s.name;sel.appendChild(o); });
+  }
+}
+
+function updateEditNoteLinkOptions(){
+  const type=document.getElementById('ent-link-type').value;
+  const sel=document.getElementById('ent-link-id');
+  sel.style.display=type==='libre'?'none':'block';
+  sel.innerHTML='';
+  if(type==='projet'){
+    projects.forEach(p=>{ const o=document.createElement('option');o.value=p.id;o.textContent=p.title;sel.appendChild(o); });
+  } else if(type==='skill'){
+    skills.forEach(s=>{ const o=document.createElement('option');o.value=s.id;o.textContent=s.emoji+' '+s.name;sel.appendChild(o); });
+  }
+}
+
+function addNote(){
+  const title=document.getElementById('nt-title').value.trim();
+  const body=document.getElementById('nt-body').value.trim();
+  if(!title){showToast('ENTRE UN TITRE !');return;}
+  const linkType=document.getElementById('nt-link-type').value;
+  const linkId=linkType!=='libre'?document.getElementById('nt-link-id').value:'';
+  notes.unshift({
+    id:Date.now().toString(),
+    title, body, linkType, linkId,
+    color:NOTE_COLORS[notes.length%NOTE_COLORS.length],
+    createdAt:Date.now()
+  });
+  save('lgg_notes',notes);
+  renderNotes();
+  closeModal('note');
+  showToast('NOTE CREEE !');
+  document.getElementById('nt-title').value='';
+  document.getElementById('nt-body').value='';
+  document.getElementById('nt-link-type').value='libre';
+  document.getElementById('nt-link-id').style.display='none';
+}
+
+function openEditNote(id){
+  const n=notes.find(x=>x.id===id);
+  if(!n) return;
+  editingNoteId=id;
+  document.getElementById('ent-title').value=n.title;
+  document.getElementById('ent-body').value=n.body;
+  document.getElementById('ent-link-type').value=n.linkType||'libre';
+  updateEditNoteLinkOptions();
+  if(n.linkId) document.getElementById('ent-link-id').value=n.linkId;
+  document.getElementById('ent-link-id').style.display=n.linkType&&n.linkType!=='libre'?'block':'none';
+  openModal('edit-note');
+}
+
+function saveEditNote(){
+  const n=notes.find(x=>x.id===editingNoteId);
+  if(!n) return;
+  const title=document.getElementById('ent-title').value.trim();
+  const body=document.getElementById('ent-body').value.trim();
+  if(title) n.title=title;
+  n.body=body;
+  n.linkType=document.getElementById('ent-link-type').value;
+  n.linkId=n.linkType!=='libre'?document.getElementById('ent-link-id').value:'';
+  n.updatedAt=Date.now();
+  save('lgg_notes',notes);
+  renderNotes();
+  closeModal('edit-note');
+  showToast('NOTE MISE A JOUR !');
+}
+
+function deleteNote(){
+  if(!confirm('Supprimer cette note ?')) return;
+  notes=notes.filter(x=>x.id!==editingNoteId);
+  save('lgg_notes',notes);
+  renderNotes();
+  closeModal('edit-note');
+  showToast('NOTE SUPPRIMEE');
+}
+
+function filterNotes(filter){
+  currentNoteFilter=filter;
+  document.querySelectorAll('.notes-filter').forEach(b=>{
+    b.classList.toggle('active', b.dataset.filter===filter);
+  });
+  renderNotes();
+}
+
+function getLinkLabel(n){
+  if(!n.linkType||n.linkType==='libre') return null;
+  if(n.linkType==='projet'){
+    const p=projects.find(x=>x.id===n.linkId);
+    return p?{label:p.title,icon:'📋',col:'blue'}:null;
+  }
+  if(n.linkType==='skill'){
+    const s=skills.find(x=>x.id===n.linkId);
+    return s?{label:s.name,icon:s.emoji,col:'green'}:null;
+  }
+  return null;
+}
+
+function renderNotes(){
+  const el=document.getElementById('notes-list');
+  if(!el) return;
+  let filtered=notes;
+  if(currentNoteFilter==='projet') filtered=notes.filter(n=>n.linkType==='projet');
+  else if(currentNoteFilter==='skill') filtered=notes.filter(n=>n.linkType==='skill');
+  else if(currentNoteFilter==='libre') filtered=notes.filter(n=>!n.linkType||n.linkType==='libre');
+  if(!filtered.length){
+    el.innerHTML='<div class="empty">aucune note ici !<br>crée-en une ci-dessus</div>';
+    return;
+  }
+  el.innerHTML='';
+  filtered.forEach(n=>{
+    const col=n.color||'purple';
+    const link=getLinkLabel(n);
+    const date=new Date(n.createdAt).toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'});
+    const preview=n.body.length>120?n.body.slice(0,120)+'...':n.body;
+    const card=document.createElement('div');
+    card.className='note-card';
+    card.style.background='var(--'+col+'-l)';
+    card.style.borderRightColor='var(--'+col+')';
+    card.style.borderBottomColor='var(--'+col+')';
+    card.onclick=()=>openEditNote(n.id);
+    card.innerHTML=`
+      <div class="note-title" style="color:var(--${col})">${n.title.toUpperCase()}</div>
+      ${preview?`<div class="note-body">${preview}</div>`:''}
+      <div class="note-meta">
+        <div style="display:flex;gap:6px;align-items:center">
+          ${link?`<span class="note-tag" style="color:var(--${link.col})">${link.icon} ${link.label.toUpperCase()}</span>`:'<span class="note-tag" style="color:var(--text3)">NOTE LIBRE</span>'}
+        </div>
+        <div class="note-date">${date}</div>
+      </div>`;
+    el.appendChild(card);
+  });
+}
+
 let editingSkillId=null;
 let editingTaskId=null;
 
@@ -1716,9 +1887,9 @@ function addProject(){
   document.getElementById('pj-title').value='';document.getElementById('pj-desc').value='';document.getElementById('pj-dl').value='';
 }
 
-const PAGE_COLORS={home:'blue',agenda:'pink',skills:'green',projets:'purple',habitudes:'green',objectifs:'amber',bilan:'blue'};
-const TB_TITLES={home:"LET'S GO GIRL — accueil",agenda:"LET'S GO GIRL — agenda",skills:"LET'S GO GIRL — skills",projets:"LET'S GO GIRL — projets",habitudes:"LET'S GO GIRL — habitudes",objectifs:"LET'S GO GIRL — objectifs",bilan:"LET'S GO GIRL — bilan"};
-const ALL_PAGES=['home','agenda','skills','projets','habitudes','objectifs','bilan'];
+const PAGE_COLORS={home:'blue',agenda:'pink',skills:'green',projets:'purple',habitudes:'green',objectifs:'amber',bilan:'blue',notes:'purple'};
+const TB_TITLES={home:"LET'S GO GIRL — accueil",agenda:"LET'S GO GIRL — agenda",skills:"LET'S GO GIRL — skills",projets:"LET'S GO GIRL — projets",habitudes:"LET'S GO GIRL — habitudes",objectifs:"LET'S GO GIRL — objectifs",bilan:"LET'S GO GIRL — bilan",notes:"LET'S GO GIRL — notes"};
+const ALL_PAGES=['home','agenda','skills','projets','habitudes','objectifs','bilan','notes'];
 
 function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1735,6 +1906,7 @@ function showPage(id){
   if(id==='habitudes')renderHabits();
   if(id==='objectifs'){populateSkillSelect();renderObjectifs();}
   if(id==='bilan')renderBilan();
+  if(id==='notes'){updateNoteLinkOptions();renderNotes();}
 }
 
 function openModal(t){document.getElementById('modal-'+t).classList.add('open');}
@@ -1767,6 +1939,7 @@ async function initApp(){
   objectifs = JSON.parse(localStorage.getItem('lgg_objectifs')||'[]');
   streak = parseInt(localStorage.getItem('lgg_streak')||'0');
   lastRewardAt = parseInt(localStorage.getItem('lgg_last_reward')||'0');
+  notes = JSON.parse(localStorage.getItem('lgg_notes')||'[]');
 
   // Cacher écran de chargement
   const loadingEl2=document.getElementById('loading-screen');
@@ -1849,6 +2022,63 @@ function renderEmojiCat(catName){
   });
 }
 </script>
+<!-- MODAL NOUVELLE NOTE -->
+<div class="modal-overlay" id="modal-note">
+  <div class="modal-win" style="max-width:380px">
+    <div class="titlebar purple">
+      <div class="wb-row"><div class="wb r" onclick="closeModal('note')">x</div></div>
+      <div class="tb-title">NOUVELLE NOTE</div>
+    </div>
+    <div class="modal-body">
+      <label>Titre</label>
+      <input type="text" id="nt-title" placeholder="Titre de la note"/>
+      <label>Note</label>
+      <textarea id="nt-body" style="height:100px" placeholder="Écris ta note ici..."></textarea>
+      <label>Lier à (optionnel)</label>
+      <select id="nt-link-type" onchange="updateNoteLinkOptions()">
+        <option value="libre">Aucun lien — note libre</option>
+        <option value="projet">Un projet</option>
+        <option value="skill">Une compétence</option>
+      </select>
+      <select id="nt-link-id" style="display:none"></select>
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeModal('note')">ANNULER</button>
+        <button class="btn-confirm purple" onclick="addNote()">CRÉER</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDIT NOTE -->
+<div class="modal-overlay" id="modal-edit-note">
+  <div class="modal-win" style="max-width:380px">
+    <div class="titlebar purple">
+      <div class="wb-row"><div class="wb r" onclick="closeModal('edit-note')">x</div></div>
+      <div class="tb-title">MODIFIER NOTE</div>
+    </div>
+    <div class="modal-body">
+      <label>Titre</label>
+      <input type="text" id="ent-title" placeholder="Titre de la note"/>
+      <label>Note</label>
+      <textarea id="ent-body" style="height:100px" placeholder="Écris ta note ici..."></textarea>
+      <label>Lier à (optionnel)</label>
+      <select id="ent-link-type" onchange="updateEditNoteLinkOptions()">
+        <option value="libre">Aucun lien — note libre</option>
+        <option value="projet">Un projet</option>
+        <option value="skill">Une compétence</option>
+      </select>
+      <select id="ent-link-id" style="display:none"></select>
+      <div class="modal-btns" style="flex-direction:column;gap:6px">
+        <div style="display:flex;gap:8px">
+          <button class="btn-cancel" onclick="closeModal('edit-note')">ANNULER</button>
+          <button class="btn-confirm purple" onclick="saveEditNote()">SAUVEGARDER</button>
+        </div>
+        <button style="width:100%;padding:9px;font-family:var(--font-pixel);font-size:7px;cursor:pointer;background:var(--red-l);border-top:2px solid #fff;border-left:2px solid #fff;border-right:2px solid var(--red);border-bottom:2px solid var(--red);color:var(--red)" onclick="deleteNote()">SUPPRIMER CETTE NOTE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL QUICK TASK -->
 <div class="modal-overlay" id="modal-quicktask">
   <div class="modal-win">
