@@ -254,7 +254,8 @@ body{background:var(--bg);font-family:'VT323',monospace;color:var(--text);min-he
     <!-- ACCUEIL -->
     <div class="page active" id="page-home">
       <div class="ptag blue">tâches du jour</div>
-      <div id="today-list"><div class="empty">pas de tâches aujourd'hui !<br>va dans agenda pour en ajouter</div></div>
+      <button class="add-btn blue" style="margin-bottom:8px" onclick="openModal('quicktask')">[ + TÂCHE DU JOUR ]</button>
+      <div id="today-list"><div class="empty">pas de tâches aujourd'hui !<br>ajoute-en une ci-dessus</div></div>
       <div class="ptag green" style="margin-top:14px">habitudes du jour</div>
       <div id="home-habit-list"><div class="empty" style="padding:10px 0;font-size:7px">aucune habitude — va dans habitudes !</div></div>
       <div id="home-habit-bonus" style="display:none;background:var(--green-l);border:2px solid var(--green);padding:6px 10px;margin-top:6px;font-family:var(--font-pixel);font-size:6px;color:var(--green);text-align:center">🎉 TOUTES FAITES ! +20 PTS !</div>
@@ -801,17 +802,64 @@ function updateHeader(){
 
 function renderTodayTasks(){
   const ti=todayIdx();
-  const todayTasks=tasks.filter(t=>t.day===ti);
+  const quickTasks=tasks.filter(t=>t.day===ti&&t.isQuick&&!t.isSkillSession&&!t.isHabitBonus&&!t.isReward);
+  const scheduledTasks=tasks.filter(t=>t.day===ti&&!t.isQuick&&!t.isSkillSession&&!t.isHabitBonus&&!t.isReward&&t.start);
+  const allVisible=[...quickTasks,...scheduledTasks];
   const el=document.getElementById('today-list');
-  if(!todayTasks.length){el.innerHTML='<div class="empty">pas de tâches aujourd\'hui !<br>va dans agenda pour en ajouter</div>';return;}
+  if(!allVisible.length){
+    el.innerHTML='<div class="empty">pas de tâches aujourd\'hui !<br>ajoute-en une ci-dessus</div>';
+    return;
+  }
   const PTS_COLORS=['blue','pink','amber','green','purple'];
   el.innerHTML='';
-  todayTasks.forEach((t,i)=>{
-    const row=document.createElement('div');row.className='task-row';
-    const col=PTS_COLORS[i%PTS_COLORS.length];
-    row.innerHTML=`<div class="task-check${t.done?' done':''}" onclick="toggleTask('${t.id}')">${t.done?'✓':''}</div><div class="task-name${t.done?' done':''}">${t.name}</div><div class="task-time">${t.start}–${t.end}</div><div class="task-pts ${col}">+${t.pts} PTS</div><button class="pj-edit" onclick="openEditTask('${t.id}')" style="margin-left:4px">&#9999;</button>`;
-    el.appendChild(row);
-  });
+  if(quickTasks.length){
+    const lbl=document.createElement('div');
+    lbl.style.cssText='font-family:var(--font-pixel);font-size:6px;color:var(--blue);margin:4px 0 6px;opacity:.7';
+    lbl.textContent='► À FAIRE AUJOURD\'HUI';
+    el.appendChild(lbl);
+    quickTasks.forEach((t,i)=>{
+      const row=document.createElement('div');row.className='task-row';
+      const col=PTS_COLORS[i%PTS_COLORS.length];
+      row.innerHTML=`<div class="task-check${t.done?' done':''}" onclick="toggleTask('${t.id}')">${t.done?'✓':''}</div><div class="task-name${t.done?' done':''}">${t.name}</div><div class="task-pts ${col}" style="margin-left:auto">+${t.pts} PTS</div><button class="pj-edit" onclick="openEditTask('${t.id}')" style="margin-left:4px">&#9999;</button>`;
+      el.appendChild(row);
+    });
+  }
+  if(scheduledTasks.length){
+    const lbl=document.createElement('div');
+    lbl.style.cssText='font-family:var(--font-pixel);font-size:6px;color:var(--pink);margin:8px 0 6px;opacity:.7';
+    lbl.textContent='► PLANIFIÉES';
+    el.appendChild(lbl);
+    scheduledTasks.forEach((t,i)=>{
+      const row=document.createElement('div');row.className='task-row';
+      const col=PTS_COLORS[i%PTS_COLORS.length];
+      row.innerHTML=`<div class="task-check${t.done?' done':''}" onclick="toggleTask('${t.id}')">${t.done?'✓':''}</div><div class="task-name${t.done?' done':''}">${t.name}</div><div class="task-time">${t.start}–${t.end}</div><div class="task-pts ${col}">+${t.pts} PTS</div><button class="pj-edit" onclick="openEditTask('${t.id}')" style="margin-left:4px">&#9999;</button>`;
+      el.appendChild(row);
+    });
+  }
+}
+
+
+function addQuickTask(){
+  const name=document.getElementById('qt-name').value.trim();
+  if(!name){showToast('ENTRE UN TITRE !');return;}
+  const pts=parseInt(document.getElementById('qt-pts').value);
+  const task={
+    id:Date.now().toString(),
+    name,
+    day:todayIdx(),
+    start:'',end:'',
+    pts,recur:'none',
+    done:false,
+    isQuick:true
+  };
+  tasks.push(task);
+  save('lgg_tasks',tasks);
+  renderTodayTasks();
+  updateHeader();
+  renderHomeProjects();
+  closeModal('quicktask');
+  showToast('✓ '+name.toUpperCase()+' AJOUTÉ !');
+  document.getElementById('qt-name').value='';
 }
 
 function toggleTask(id){
@@ -1679,6 +1727,32 @@ function renderEmojiCat(catName){
   });
 }
 </script>
+<!-- MODAL QUICK TASK -->
+<div class="modal-overlay" id="modal-quicktask">
+  <div class="modal-win">
+    <div class="titlebar blue">
+      <div class="wb-row"><div class="wb r" onclick="closeModal('quicktask')">x</div></div>
+      <div class="tb-title">TÂCHE DU JOUR</div>
+    </div>
+    <div class="modal-body">
+      <div style="font-family:var(--font-pixel);font-size:6px;color:var(--blue);margin-bottom:10px">À faire aujourd'hui, sans horaire fixe</div>
+      <label>Titre</label>
+      <input type="text" id="qt-name" placeholder="ex: Répondre aux mails"/>
+      <label>Points</label>
+      <select id="qt-pts">
+        <option value="5">5 pts — légère</option>
+        <option value="10" selected>10 pts — normale</option>
+        <option value="20">20 pts — importante</option>
+        <option value="30">30 pts — majeure</option>
+      </select>
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeModal('quicktask')">ANNULER</button>
+        <button class="btn-confirm blue" onclick="addQuickTask()">AJOUTER</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL EDIT HABITUDE -->
 <div class="modal-overlay" id="modal-edit-habit">
   <div class="modal-win">
