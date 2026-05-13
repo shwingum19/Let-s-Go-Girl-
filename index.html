@@ -5,6 +5,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Let's Go Girl ✦</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet"/>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBTEiXZQXwi6E4qjE8ehhp8JY7is8eLN4Y",
+    authDomain: "letsgogirl-b6b33.firebaseapp.com",
+    projectId: "letsgogirl-b6b33",
+    storageBucket: "letsgogirl-b6b33.firebasestorage.app",
+    messagingSenderId: "15232606455",
+    appId: "1:15232606455:web:4e22e6c6f70724a4a0f3f2"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const USER_DOC = "letsgogirl/main";
+
+  // Expose db and helpers to global scope
+  window._db = db;
+  window._doc = doc;
+  window._setDoc = setDoc;
+  window._getDoc = getDoc;
+  window._onSnapshot = onSnapshot;
+  window._USER_DOC = USER_DOC;
+  window._firebaseReady = true;
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -747,7 +774,58 @@ function claimReward(){
   },400);
 }
 
-function save(k,v){localStorage.setItem(k,JSON.stringify(v));}
+// ── STORAGE : localStorage + Firebase sync ──
+function save(k,v){
+  localStorage.setItem(k,JSON.stringify(v));
+  // Sync to Firebase (debounced)
+  clearTimeout(window._syncTimer);
+  window._syncTimer=setTimeout(()=>syncToFirebase(),800);
+}
+
+async function syncToFirebase(){
+  if(!window._db) return;
+  try {
+    const data={
+      skills: JSON.parse(localStorage.getItem('lgg_skills')||'[]'),
+      projects: JSON.parse(localStorage.getItem('lgg_projects')||'[]'),
+      tasks: JSON.parse(localStorage.getItem('lgg_tasks')||'[]'),
+      habits: JSON.parse(localStorage.getItem('lgg_habits')||'[]'),
+      habitChecks: JSON.parse(localStorage.getItem('lgg_habit_checks')||'{}'),
+      objectifs: JSON.parse(localStorage.getItem('lgg_objectifs')||'[]'),
+      streak: localStorage.getItem('lgg_streak')||'0',
+      lastReward: localStorage.getItem('lgg_last_reward')||'0',
+      scoreHistory: JSON.parse(localStorage.getItem('lgg_score_history')||'[]'),
+      updatedAt: Date.now()
+    };
+    const ref=window._doc(window._db, window._USER_DOC);
+    await window._setDoc(ref, data);
+  } catch(e){
+    console.warn('Firebase sync error:', e);
+  }
+}
+
+async function loadFromFirebase(){
+  if(!window._db) return false;
+  try {
+    const ref=window._doc(window._db, window._USER_DOC);
+    const snap=await window._getDoc(ref);
+    if(!snap.exists()) return false;
+    const data=snap.data();
+    if(data.skills) localStorage.setItem('lgg_skills', JSON.stringify(data.skills));
+    if(data.projects) localStorage.setItem('lgg_projects', JSON.stringify(data.projects));
+    if(data.tasks) localStorage.setItem('lgg_tasks', JSON.stringify(data.tasks));
+    if(data.habits) localStorage.setItem('lgg_habits', JSON.stringify(data.habits));
+    if(data.habitChecks) localStorage.setItem('lgg_habit_checks', JSON.stringify(data.habitChecks));
+    if(data.objectifs) localStorage.setItem('lgg_objectifs', JSON.stringify(data.objectifs));
+    if(data.streak) localStorage.setItem('lgg_streak', data.streak);
+    if(data.lastReward) localStorage.setItem('lgg_last_reward', data.lastReward);
+    if(data.scoreHistory) localStorage.setItem('lgg_score_history', JSON.stringify(data.scoreHistory));
+    return true;
+  } catch(e){
+    console.warn('Firebase load error:', e);
+    return false;
+  }
+}
 
 function todayIdx(){const d=new Date().getDay();return d===0?6:d-1;}
 
@@ -1127,7 +1205,7 @@ function toggleHabit(habitId){
   if(!habitChecks[key]) habitChecks[key]={};
   const wasDone=checkAllHabitsDone();
   habitChecks[key][habitId]=!habitChecks[key][habitId];
-  localStorage.setItem('lgg_habit_checks',JSON.stringify(habitChecks));
+  save('lgg_habit_checks',habitChecks);
   const nowDone=checkAllHabitsDone();
   // Bonus points si toutes faites
   if(nowDone&&!wasDone){
@@ -1178,7 +1256,7 @@ function saveEditHabit(){
   const emoji=document.getElementById('ehb-emoji').value.trim();
   if(name) h.name=name;
   if(emoji) h.emoji=emoji;
-  localStorage.setItem('lgg_habits',JSON.stringify(habits));
+  save('lgg_habits',habits);
   renderHabits();
   renderHomeHabits();
   closeModal('edit-habit');
@@ -1188,7 +1266,7 @@ function saveEditHabit(){
 function deleteHabitFromEdit(){
   if(!confirm('Supprimer cette habitude ?')) return;
   habits=habits.filter(x=>x.id!==editingHabitId);
-  localStorage.setItem('lgg_habits',JSON.stringify(habits));
+  save('lgg_habits',habits);
   renderHabits();
   renderHomeHabits();
   closeModal('edit-habit');
@@ -1245,7 +1323,7 @@ function addObjectif(){
   const date=document.getElementById('obj-date').value;
   if(!skillId){showToast('CHOISIS UNE COMPETENCE !');return;}
   objectifs.push({id:Date.now().toString(),title,skillId,targetLevel,date});
-  localStorage.setItem('lgg_objectifs',JSON.stringify(objectifs));
+  save('lgg_objectifs',objectifs);
   renderObjectifs();
   closeModal('objectif');
   showToast('OBJECTIF CREE !');
@@ -1256,7 +1334,7 @@ function addObjectif(){
 function deleteObjectif(id){
   if(!confirm('Supprimer cet objectif ?')) return;
   objectifs=objectifs.filter(o=>o.id!==id);
-  localStorage.setItem('lgg_objectifs',JSON.stringify(objectifs));
+  save('lgg_objectifs',objectifs);
   renderObjectifs();
   showToast('OBJECTIF SUPPRIME');
 }
@@ -1664,7 +1742,42 @@ function closeModal(t){document.getElementById('modal-'+t).classList.remove('ope
 let _tt;
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),2500);}
 
-renderSkills();renderProjects();renderTodayTasks();renderHabits();renderHomeHabits();renderHomeProjects();renderHomeObjectifs();renderObjectifs();updateHeader();
+// ── INIT : charger depuis Firebase puis afficher ──
+async function initApp(){
+  // Afficher un écran de chargement
+  document.getElementById('loading-screen').style.display='flex';
+
+  // Attendre que Firebase soit prêt (max 3 secondes)
+  if(!window._firebaseReady){
+    await new Promise(resolve=>{
+      window.addEventListener('firebase-ready', resolve, {once:true});
+      setTimeout(resolve, 3000);
+    });
+  }
+
+  // Charger depuis Firebase
+  const loaded = await loadFromFirebase();
+
+  // Recharger les variables depuis localStorage (maintenant à jour)
+  skills = JSON.parse(localStorage.getItem('lgg_skills')||'[]');
+  projects = JSON.parse(localStorage.getItem('lgg_projects')||'[]');
+  tasks = JSON.parse(localStorage.getItem('lgg_tasks')||'[]');
+  habits = JSON.parse(localStorage.getItem('lgg_habits')||'[]');
+  habitChecks = JSON.parse(localStorage.getItem('lgg_habit_checks')||'{}');
+  objectifs = JSON.parse(localStorage.getItem('lgg_objectifs')||'[]');
+  streak = parseInt(localStorage.getItem('lgg_streak')||'0');
+  lastRewardAt = parseInt(localStorage.getItem('lgg_last_reward')||'0');
+
+  // Cacher l'écran de chargement
+  document.getElementById('loading-screen').style.display='none';
+
+  // Afficher l'app
+  renderSkills();renderProjects();renderTodayTasks();renderHabits();
+  renderHomeHabits();renderHomeProjects();renderHomeObjectifs();
+  renderObjectifs();updateHeader();
+}
+
+initApp();
 
 // ── EMOJI PICKER ──
 const EMOJI_CATS = {
@@ -1778,6 +1891,20 @@ function renderEmojiCat(catName){
     </div>
   </div>
 </div>
+
+<!-- LOADING SCREEN -->
+<div id="loading-screen" style="display:none;position:fixed;inset:0;background:#f5f5f0;z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:16px">
+  <div style="font-family:'Press Start 2P',monospace;font-size:12px;color:var(--purple)">LET'S GO GIRL ✦</div>
+  <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text2)">chargement en cours...</div>
+  <div style="display:flex;gap:6px;margin-top:8px">
+    <div class="dot-anim" style="width:10px;height:10px;background:var(--blue);animation:blink .8s infinite"></div>
+    <div class="dot-anim" style="width:10px;height:10px;background:var(--pink);animation:blink .8s .2s infinite"></div>
+    <div class="dot-anim" style="width:10px;height:10px;background:var(--purple);animation:blink .8s .4s infinite"></div>
+  </div>
+</div>
+<style>
+@keyframes blink{0%,100%{opacity:.2}50%{opacity:1}}
+</style>
 
 <!-- EMOJI PICKER -->
 <div class="emoji-picker" id="emoji-picker" style="display:none">
