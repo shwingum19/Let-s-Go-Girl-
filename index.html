@@ -922,7 +922,9 @@ function renderTodayTasks(){
     quickTasks.forEach((t,i)=>{
       const row=document.createElement('div');row.className='task-row';
       const col=PTS_COLORS[i%PTS_COLORS.length];
-      row.innerHTML=`<div class="task-check${t.done?' done':''}" onclick="toggleTask('${t.id}')">${t.done?'✓':''}</div><div class="task-name${t.done?' done':''}">${t.name}</div><div class="task-pts ${col}" style="margin-left:auto">+${t.pts} PTS</div><button class="pj-edit" onclick="openEditTask('${t.id}')" style="margin-left:4px">&#9999;</button>`;
+      // Bouton reporter seulement si pas encore faite
+      const reportBtn=!t.done?`<button class="pj-edit" onclick="reporterDemain('${t.id}')" title="Reporter à demain" style="color:var(--amber);border-color:var(--amber);margin-left:2px">➜</button>`:'';
+      row.innerHTML=`<div class="task-check${t.done?' done':''}" onclick="toggleTask('${t.id}')">${t.done?'✓':''}</div><div class="task-name${t.done?' done':''}${t.reported?' reported':''}">${t.name}${t.reported?'<span style="font-size:10px;color:var(--amber);margin-left:4px">reportée</span>':''}</div><div class="task-pts ${col}" style="margin-left:auto">+${t.pts} PTS</div><button class="pj-edit" onclick="openEditTask('${t.id}')" style="margin-left:2px">&#9999;</button>${reportBtn}`;
       el.appendChild(row);
     });
   }
@@ -938,6 +940,19 @@ function renderTodayTasks(){
       el.appendChild(row);
     });
   }
+}
+
+function reporterDemain(id){
+  const t=tasks.find(x=>x.id===id);
+  if(!t) return;
+  // Calculer l'index du jour suivant (0-6)
+  const nextDay=(t.day+1)%7;
+  t.day=nextDay;
+  t.reported=true;
+  save('lgg_tasks',tasks);
+  renderTodayTasks();
+  const JOURS_FR=['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+  showToast('➜ REPORTÉE À '+JOURS_FR[nextDay].toUpperCase()+' !');
 }
 
 
